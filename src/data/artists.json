@@ -1,0 +1,28 @@
+{
+  "members": [
+    { "name": "Becky O'Keefe", "slug": "becky-okeefe", "media": "Painting", "bio": "" },
+    { "name": "Bethany Preble", "slug": "bethany-preble", "media": "Painting", "bio": "" },
+    { "name": "Brooke Simon", "slug": "brooke-simon", "media": "Painting", "bio": "" },
+    { "name": "Carol Michaud", "slug": "carol-michaud", "media": "Painting", "bio": "" },
+    { "name": "Hugo Diaz", "slug": "hugo-diaz", "media": "Painting", "bio": "" },
+    { "name": "Janis Guyette", "slug": "janis-guyette", "media": "Painting", "bio": "" },
+    { "name": "Linda Malaussena", "slug": "linda-malaussena", "media": "Painting", "bio": "" },
+    { "name": "Mary Laury", "slug": "mary-laury", "media": "Painting", "bio": "" },
+    { "name": "Mavis Davis", "slug": "mavis-davis", "media": "Painting", "bio": "" },
+    { "name": "Melissa Rioux", "slug": "melissa-rioux", "media": "Painting", "bio": "" },
+    { "name": "Pamela Hall", "slug": "pamela-hall", "media": "Painting", "bio": "" },
+    { "name": "Penny Ricker", "slug": "penny-ricker", "media": "Painting", "bio": "" },
+    { "name": "Rick Sawyer", "slug": "rick-sawyer", "media": "Painting", "bio": "" },
+    { "name": "Steve Brookman", "slug": "steve-brookman", "media": "Painting", "bio": "" },
+    { "name": "Suzanne Becque", "slug": "suzanne-becque", "media": "Painting", "bio": "" }
+  ],
+  "guests2025": [
+    "Robert Clay",
+    "Carol Benson",
+    "Laurie Leiser",
+    "Lynn Amsterdam",
+    "Louise Vinueza",
+    "Nancy Coyne",
+    "Tony Scarlatos"
+  ]
+}

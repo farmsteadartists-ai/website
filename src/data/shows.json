@@ -1,0 +1,44 @@
+{
+  "season": 2026,
+  "hours": {
+    "friday": "10am–6pm",
+    "saturday": "10am–6pm",
+    "sunday": "10am–4pm"
+  },
+  "shows": [
+    {
+      "title": "Opening Weekend",
+      "dates": "June 12–14",
+      "month": "June",
+      "days": "12–14",
+      "startDate": "2026-06-12",
+      "endDate": "2026-06-14"
+    },
+    {
+      "title": "July Show",
+      "dates": "July 10–12",
+      "month": "July",
+      "days": "10–12",
+      "startDate": "2026-07-10",
+      "endDate": "2026-07-12"
+    },
+    {
+      "title": "August Show",
+      "dates": "August 7–9",
+      "month": "August",
+      "days": "7–9",
+      "startDate": "2026-08-07",
+      "endDate": "2026-08-09"
+    },
+    {
+      "title": "Season Finale",
+      "dates": "September 11–13",
+      "month": "Sept",
+      "days": "11–13",
+      "startDate": "2026-09-11",
+      "endDate": "2026-09-13"
+    }
+  ],
+  "guestArtistFormEmail": "farmsteadartists@gmail.com",
+  "guestArtistNote": "Maine artists are welcome to apply as Guest Artists for the 2026 summer season."
+}

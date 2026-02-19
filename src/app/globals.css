@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap');
+
+:root {
+  --sage-600: #B22222;
+  --sage-500: #D43232;
+  --sage-400: #E84545;
+  --sky: #89A7B5;
+  --cream-50: #FEFCF9;
+  --cream-100: #FAFCF7;
+  --cream-200: #EEF3E8;
+  --gold: #C2A96E;
+  --charcoal: #2C2C2C;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  color: var(--charcoal);
+  background: var(--cream-100);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Smooth page transitions */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.8s ease-out both;
+}
+
+.animate-fade-up-1 { animation-delay: 0.2s; }
+.animate-fade-up-2 { animation-delay: 0.4s; }
+.animate-fade-up-3 { animation-delay: 0.6s; }
+.animate-fade-up-4 { animation-delay: 0.8s; }

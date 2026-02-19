@@ -1,0 +1,35 @@
+{
+  "name": "Farmstead Artists",
+  "tagline": "Original art in a historic barn on Route 1",
+  "description": "A select group of community artists displaying and selling original artwork at the Farmstead Barn in East Sullivan, Maine since 2022.",
+  "address": {
+    "venue": "Farmstead Barn",
+    "street": "2816 US-1",
+    "city": "East Sullivan",
+    "state": "ME",
+    "zip": "04664",
+    "lat": 44.4948741,
+    "lng": -68.1404914
+  },
+  "contact": {
+    "email": "farmsteadartists@gmail.com",
+    "phone": "207-974-9366",
+    "phoneName": "Carol Michaud"
+  },
+  "social": {
+    "facebook": "https://www.facebook.com/farmsteadartists",
+    "instagram": "https://www.instagram.com/explore/locations/110217371723044/farmstead-barn-art-show-2023/"
+  },
+  "barnOwners": {
+    "names": "Judy Ashby & Ray Weintraub",
+    "phone": "207-963-9109",
+    "website": "https://farmsteadbarn.com"
+  },
+  "stats": {
+    "piecesSold2025": 196,
+    "summers": 5,
+    "memberCount": 15,
+    "showDays2025": 12
+  },
+  "domain": "farmsteadartists.art"
+}
