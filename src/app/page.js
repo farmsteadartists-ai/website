@@ -76,7 +76,7 @@ export default function HomePage() {
         <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-6">Member Artists</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {artists.members.map((artist, i) => (
-            <ArtistCard key={artist.slug} name={artist.name} index={i} />
+            <ArtistCard key={artist.slug} name={artist.name} slug={artist.slug} index={i} />
           ))}
         </div>
         <div className="mt-8 pt-6 border-t border-black/[0.06]">
