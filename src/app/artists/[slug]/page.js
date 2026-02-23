@@ -1,3 +1,4 @@
+export const revalidate = 60
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'

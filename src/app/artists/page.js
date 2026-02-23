@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -12,7 +13,6 @@ const cardColors = [
   'bg-sage-600/15', 'bg-sky-600/15', 'bg-sage-500/15', 'bg-sky-500/15',
 ]
 
-export const revalidate = 60 // refresh data every 60 seconds
 
 export default async function ArtistsPage() {
   const { data: members } = await supabase
