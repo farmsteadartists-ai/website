@@ -1,3 +1,10 @@
+// ============================================================
+// Script: page.js (artists)
+// Path:   src/app/artists/page.js
+// Desc:   Member artists grid + guest artists by year
+//         Subtle pencil icon for artist login
+// ============================================================
+
 export const dynamic = "force-dynamic"
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
@@ -7,12 +14,10 @@ export const metadata = {
   description: 'Meet the member artists of Farmstead Artists in East Sullivan, Maine.',
 }
 
-// Soft sage/blue palette for cards without photos
 const cardColors = [
   'bg-sage-600/10', 'bg-sky-600/10', 'bg-sage-500/10', 'bg-sky-500/10',
   'bg-sage-600/15', 'bg-sky-600/15', 'bg-sage-500/15', 'bg-sky-500/15',
 ]
-
 
 export default async function ArtistsPage() {
   const { data: members } = await supabase
@@ -28,7 +33,6 @@ export default async function ArtistsPage() {
     .order('show_year', { ascending: false })
     .order('sort_order')
 
-  // Group guests by year
   const guestsByYear = (guests || []).reduce((acc, g) => {
     const year = g.show_year || 'Other'
     if (!acc[year]) acc[year] = []
@@ -48,33 +52,40 @@ export default async function ArtistsPage() {
       {/* Member grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {(members || []).map((artist, i) => (
-          <Link
-            key={artist.slug}
-            href={`/artists/${artist.slug}`}
-            className="group block"
-          >
-            <div className={`aspect-[3/4] rounded-lg overflow-hidden ${cardColors[i % cardColors.length]} flex items-end relative`}>
-              {artist.photo_url ? (
-                <img
-                  src={artist.photo_url}
-                  alt={artist.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-serif text-4xl font-bold text-sage-600/30">
-                    {artist.name.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-              )}
-              <div className="relative z-10 w-full p-3 bg-gradient-to-t from-black/60 to-transparent">
-                <div className="font-serif font-semibold text-cream-50 text-sm leading-tight">{artist.name}</div>
-                {artist.medium && (
-                  <div className="text-[0.65rem] text-cream-50/70 font-light mt-0.5">{artist.medium}</div>
+          <div key={artist.slug} className="relative">
+            <Link href={`/artists/${artist.slug}`} className="group block">
+              <div className={`aspect-[3/4] rounded-lg overflow-hidden ${cardColors[i % cardColors.length]} flex items-end relative`}>
+                {artist.photo_url ? (
+                  <img
+                    src={artist.photo_url}
+                    alt={artist.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-serif text-4xl font-bold text-sage-600/30">
+                      {artist.name.split(' ').map(n => n[0]).join('')}
+                    </span>
+                  </div>
                 )}
+                <div className="relative z-10 w-full p-3 bg-gradient-to-t from-black/60 to-transparent">
+                  <div className="font-serif font-semibold text-cream-50 text-sm leading-tight">{artist.name}</div>
+                  {artist.medium && (
+                    <div className="text-[0.65rem] text-cream-50/70 font-light mt-0.5">{artist.medium}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+
+            {/* Subtle pencil — artist login */}
+            <Link
+              href="/login"
+              className="absolute top-2 right-2 z-20 text-white/40 hover:text-white/90 transition-colors text-base leading-none"
+              title="Artist login"
+            >
+              🖊
+            </Link>
+          </div>
         ))}
       </div>
 
@@ -104,7 +115,7 @@ export default async function ArtistsPage() {
           Maine artists are welcome to apply as Guest Artists for the 2026 summer season.
         </p>
         <a
-          href="mailto:farmsteadartists@gmail.com?subject=Guest Artist Inquiry"
+          href="mailto:farmsteadartists@gmail.com?subject=Guest%20Artist%20Inquiry"
           className="inline-block bg-cream-50 text-sage-700 px-6 py-2.5 rounded font-semibold text-sm hover:-translate-y-0.5 transition-all"
         >
           Apply as Guest Artist
@@ -113,3 +124,5 @@ export default async function ArtistsPage() {
     </section>
   )
 }
+
+// end of file

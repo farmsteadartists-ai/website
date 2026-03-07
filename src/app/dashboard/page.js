@@ -18,18 +18,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      // Check auth
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
         router.push('/login')
         return
       }
 
-      // Get artist profile
       const { data: artistData } = await supabase
         .from('artists')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .single()
 
       if (!artistData) {
@@ -39,7 +37,6 @@ export default function DashboardPage() {
 
       setArtist(artistData)
 
-      // Get artworks
       const { data: artworkData } = await supabase
         .from('artworks')
         .select('*')
@@ -81,7 +78,6 @@ export default function DashboardPage() {
 
   return (
     <section className="min-h-screen bg-cream-100 pb-24">
-      {/* Header */}
       <div className="bg-sage-600 text-cream-50 px-6 py-6">
         <div className="flex items-center justify-between">
           <div>
@@ -95,7 +91,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="px-6 py-6 space-y-6">
-        {/* Profile Card */}
         <div className="bg-white rounded-xl p-5 border border-black/[0.04] shadow-sm">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-sage-600/10 flex-shrink-0">
@@ -114,13 +109,11 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-400 font-light truncate">{artist.medium || 'No medium set'}</p>
             </div>
           </div>
-
           {artist.bio ? (
             <p className="text-gray-500 text-sm font-light leading-relaxed line-clamp-3">{artist.bio}</p>
           ) : (
             <p className="text-gray-300 text-sm italic">No artist statement yet</p>
           )}
-
           <Link
             href="/dashboard/edit-profile"
             className="block w-full text-center mt-4 py-3 bg-sage-600 text-cream-50 rounded-lg font-semibold text-base hover:bg-sage-500 transition-colors"
@@ -129,21 +122,18 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Artworks */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-serif text-xl font-semibold text-sage-700">
               My Artwork ({artworks.length})
             </h2>
           </div>
-
           <Link
             href="/dashboard/add-artwork"
             className="block w-full text-center py-4 mb-4 border-2 border-dashed border-sage-600/30 text-sage-600 rounded-xl font-semibold text-lg hover:border-sage-600 hover:bg-sage-600/5 transition-colors"
           >
             + Add Artwork
           </Link>
-
           <div className="space-y-3">
             {artworks.map((work) => (
               <Link
