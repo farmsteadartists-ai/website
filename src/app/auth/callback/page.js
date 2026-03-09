@@ -1,7 +1,8 @@
 // ============================================================
 // Script: page.js (auth-callback)
 // Path:   src/app/auth/callback/page.js
-// Desc:   Handles Supabase magic link — single clean check
+// Desc:   Implicit flow — waits for Supabase to auto-process
+//         #access_token hash, then redirects to dashboard
 // ============================================================
 
 'use client'
@@ -14,20 +15,27 @@ export default function AuthCallbackPage() {
   const [status, setStatus] = useState('Signing you in...')
 
   useEffect(() => {
-    async function handleCallback() {
-      // Wait briefly for Supabase to process URL hash tokens
-      await new Promise(r => setTimeout(r, 1500))
-
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (session) {
+    // Supabase JS automatically detects and processes
+    // the #access_token hash in the URL on page load.
+    // We just listen for the SIGNED_IN event.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        subscription.unsubscribe()
         router.replace('/dashboard')
-      } else {
-        setStatus('Sign in failed — please try again.')
-        setTimeout(() => router.replace('/login'), 2000)
       }
+    })
+
+    // Hard timeout — 6 seconds then give up
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe()
+      setStatus('Sign in failed. Please try again.')
+      setTimeout(() => router.replace('/login'), 2000)
+    }, 6000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-    handleCallback()
   }, [router])
 
   return (
