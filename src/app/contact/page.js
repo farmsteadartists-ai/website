@@ -1,4 +1,12 @@
+// ============================================================
+// Script: page.js (contact)
+// Path:   src/app/contact/page.js
+// Desc:   Contact page with social links, barn info,
+//         and guest artist PDF application download
+// ============================================================
+
 import site from '@/data/site.json'
+import shows from '@/data/shows.json'
 
 export const metadata = {
   title: 'Contact — Farmstead Artists',
@@ -46,6 +54,30 @@ export default function ContactPage() {
           </div>
         </div>
 
+        {/* Guest Artist Application */}
+        <div className="mt-10">
+          <h2 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Apply as a Guest Artist</h2>
+          <p className="text-gray-600 font-light leading-relaxed mb-4">
+            Maine artists are welcome to apply as Guest Artists for the {shows.season} summer season.
+            Download the application form, fill it out, and email it to us.
+          </p>
+          <div className="flex gap-3 flex-wrap">
+            <a
+              href="/forms/Guest Artist Application.pdf"
+              target="_blank"
+              className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
+            >
+              Download Application (PDF)
+            </a>
+            <a
+              href={`mailto:${site.contact.email}?subject=Guest Artist Application — ${shows.season}`}
+              className="inline-block border border-sage-600 text-sage-600 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-600/5 transition-colors"
+            >
+              Email Application
+            </a>
+          </div>
+        </div>
+
         {/* Barn contact */}
         <div className="mt-10 p-6 bg-cream-200 rounded-lg">
           <h2 className="font-serif text-lg text-sage-700 font-semibold mb-2">The Farmstead Barn</h2>
@@ -61,7 +93,10 @@ export default function ContactPage() {
             </a>.
           </p>
         </div>
+
       </div>
     </section>
   )
 }
+
+// end of file
