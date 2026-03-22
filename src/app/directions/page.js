@@ -1,3 +1,9 @@
+// ============================================================
+// Script: page.js (directions)
+// Path:   src/app/directions/page.js
+// Desc:   Directions page with map and getting here info
+// ============================================================
+
 import site from '@/data/site.json'
 
 export const metadata = {
@@ -26,19 +32,13 @@ export default function DirectionsPage() {
             loading="lazy"
           />
 
-          <div className="flex gap-3 mt-4">
+          <div className="mt-4">
             <a
               href={`https://www.google.com/maps/dir//Farmstead+Barn,+2816+US-1,+East+Sullivan,+ME+04664/@${site.address.lat},${site.address.lng},15z`}
               target="_blank"
-              className="flex-1 text-center py-3 bg-sage-600 text-cream-50 rounded font-medium hover:bg-sage-500 transition-colors"
+              className="block w-full text-center py-3 bg-sage-600 text-cream-50 rounded font-medium hover:bg-sage-500 transition-colors"
             >
               Get Directions
-            </a>
-            <a
-              href={`tel:${site.barnOwners.phone.replace(/-/g, '')}`}
-              className="flex-1 text-center py-3 border border-sage-600 text-sage-600 rounded font-medium hover:bg-sage-600/5 transition-colors"
-            >
-              Call Barn ({site.barnOwners.phone})
             </a>
           </div>
         </div>
@@ -55,3 +55,5 @@ export default function DirectionsPage() {
     </section>
   )
 }
+
+// end of file
