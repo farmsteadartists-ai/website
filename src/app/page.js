@@ -16,7 +16,7 @@ export default function HomePage() {
           />
         </div>
         <div className="relative z-10 text-cream-50">
-          <span className="inline-block text-[0.7rem] font-semibold tracking-[0.2em] uppercase text-gold border border-gold/40 px-3 py-1.5 rounded-sm mb-5">
+          <span className="inline-block text-sm font-bold tracking-[0.2em] uppercase text-gold border-2 border-gold/60 px-4 py-2 rounded-sm mb-5">
             East Sullivan, Maine
           </span>
           <h1 className="font-serif text-5xl md:text-7xl font-bold leading-[1.1] mb-3">
