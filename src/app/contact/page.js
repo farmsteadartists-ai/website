@@ -51,23 +51,16 @@ export default function ContactPage() {
           <h2 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Apply as a Guest Artist</h2>
           <p className="text-gray-600 font-light leading-relaxed mb-4">
             Maine artists are welcome to apply as Guest Artists for the {shows.season} summer season.
-            Download the application form, fill it out, and email it to us.
+            Download the application form, fill it out, and email it to us at{' '}
+            <a href={`mailto:${site.contact.email}`} className="text-sage-600 font-medium">{site.contact.email}</a>.
           </p>
-          <div className="flex gap-3 flex-wrap">
-            <a
-              href="/forms/Guest Artist Application.pdf"
-              download
-              className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
-            >
-              Download Application (PDF)
-            </a>
-            <a
-              href={`mailto:${site.contact.email}?subject=Guest Artist Application — ${shows.season}`}
-              className="inline-block border border-sage-600 text-sage-600 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-600/5 transition-colors"
-            >
-              Email Application
-            </a>
-          </div>
+          <a
+            href="/forms/Guest Artist Application.pdf"
+            download
+            className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
+          >
+            Download Application (PDF)
+          </a>
         </div>
 
         {/* Barn contact */}
