@@ -44,14 +44,6 @@ export default function ContactPage() {
               <p className="text-sage-500/70 text-sm font-light">Follow us for photos, show updates, and event announcements</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-4 p-5 bg-cream-50 rounded-lg border border-black/[0.04]">
-            <div className="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center text-xl shrink-0">◎</div>
-            <div>
-              <a href={site.social.instagram} target="_blank" className="text-sage-700 font-semibold text-lg">Instagram</a>
-              <p className="text-sage-500/70 text-sm font-light">See artwork and barn life</p>
-            </div>
-          </div>
         </div>
 
         {/* Guest Artist Application */}
@@ -64,7 +56,7 @@ export default function ContactPage() {
           <div className="flex gap-3 flex-wrap">
             <a
               href="/forms/Guest Artist Application.pdf"
-              target="_blank"
+              download
               className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
             >
               Download Application (PDF)
