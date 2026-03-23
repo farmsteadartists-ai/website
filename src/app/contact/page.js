@@ -51,7 +51,7 @@ export default function ContactPage() {
           <h2 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Apply as a Guest Artist</h2>
           <p className="text-gray-600 font-light leading-relaxed mb-4">
             Maine artists are welcome to apply as Guest Artists for the {shows.season} summer season.
-            Download the application form, fill it out, and send it to us.
+            Download the application form, fill it out, and send it to suzannebecque@gmail.com
           </p>
           <div className="flex gap-3 flex-wrap">
             <a
