@@ -1,3 +1,10 @@
+// ============================================================
+// Script: page.js (home)
+// Path:   src/app/page.js
+// Desc:   Home page — hero, about, artists, calendar,
+//         history, signup, directions, contact
+// ============================================================
+
 import ArtistCard from '@/components/ArtistCard'
 import artists from '@/data/artists.json'
 import shows from '@/data/shows.json'
@@ -160,20 +167,13 @@ export default function HomePage() {
         <p className="opacity-80 font-light mb-6 text-[0.95rem]">
           Get notified before each show weekend, plus news about guest speakers and special events.
         </p>
-        <form className="flex flex-col md:flex-row gap-3 max-w-sm mx-auto">
-          <input
-            type="email"
-            placeholder="Your email address"
-            className="flex-1 px-4 py-3 rounded border border-white/25 bg-white/10 text-cream-50 placeholder:text-white/45 focus:border-white/60 outline-none text-base"
-            required
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 bg-cream-50 text-sage-600 rounded font-semibold text-sm uppercase tracking-wider hover:bg-white hover:-translate-y-0.5 transition-all"
-          >
-            Subscribe
-          </button>
-        </form>
+        <a
+          href="https://forms.gle/7XakUGhunzhDPLuZ6"
+          target="_blank"
+          className="inline-block px-8 py-3 bg-cream-50 text-sage-600 rounded font-semibold text-sm uppercase tracking-wider hover:bg-white hover:-translate-y-0.5 transition-all"
+        >
+          Sign Up for Show Reminders
+        </a>
       </section>
 
       {/* ===== DIRECTIONS ===== */}
@@ -192,19 +192,13 @@ export default function HomePage() {
               allowFullScreen
               loading="lazy"
             />
-            <div className="flex gap-3 mt-4">
+            <div className="mt-4">
               <a
                 href={`https://www.google.com/maps/dir//Farmstead+Barn,+2816+US-1,+East+Sullivan,+ME+04664/@${site.address.lat},${site.address.lng},15z`}
                 target="_blank"
-                className="flex-1 text-center py-3 bg-sage-600 text-cream-50 rounded font-medium text-sm hover:bg-sage-500 transition-colors"
+                className="block w-full text-center py-3 bg-sage-600 text-cream-50 rounded font-medium text-sm hover:bg-sage-500 transition-colors"
               >
                 Get Directions
-              </a>
-              <a
-                href={`tel:${site.barnOwners.phone.replace(/-/g, '')}`}
-                className="flex-1 text-center py-3 border border-sage-600 text-sage-600 rounded font-medium text-sm hover:bg-sage-600/5 transition-colors"
-              >
-                Call Barn
               </a>
             </div>
           </div>
@@ -230,13 +224,6 @@ export default function HomePage() {
               <small className="block text-sage-500/70 text-xs font-light">Photos &amp; show updates</small>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
-            <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center text-lg shrink-0">◎</div>
-            <div>
-              <a href={site.social.instagram} target="_blank" className="text-sage-700 font-medium text-sm">Instagram</a>
-              <small className="block text-sage-500/70 text-xs font-light">Artwork &amp; barn life</small>
-            </div>
-          </div>
         </div>
 
         {/* GUEST ARTIST APPLICATION */}
@@ -248,10 +235,11 @@ export default function HomePage() {
             be submitted anytime.
           </p>
           <a
-            href={`mailto:${site.contact.email}?subject=Guest Artist Application — ${shows.season}`}
+            href="/forms/Guest Artist Application.pdf"
+            download
             className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
           >
-            Email Your Application
+            Download Application (PDF)
           </a>
         </div>
 
@@ -273,16 +261,11 @@ export default function HomePage() {
                 display and raffled three copies of his book.
               </p>
             </div>
-            {/* Add more presentations here as they happen:
-            <div className="bg-cream-50 rounded-lg p-5 border border-black/[0.04]">
-              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-sage-500 font-semibold mb-1">August 2026</div>
-              <h4 className="font-serif text-lg font-semibold text-sage-700">Speaker Name — Title</h4>
-              <p className="text-gray-500 font-light text-sm leading-relaxed mt-1">Description.</p>
-            </div>
-            */}
           </div>
         </div>
       </section>
     </>
   )
 }
+
+// end of file
