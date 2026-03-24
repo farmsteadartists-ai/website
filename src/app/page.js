@@ -220,8 +220,14 @@ export default function HomePage() {
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
             <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">📞</div>
             <div>
-              <a href={`tel:${site.contact.phone.replace(/-/g, '')}`} className="text-sage-700 font-medium text-sm">{site.contact.phone}</a>
-              <small className="block text-sage-500/70 text-xs font-light">{site.contact.phoneName} — tap to call on mobile</small>
+              <div className="text-sage-700 font-medium text-sm">{site.contact.phone}</div>
+              <small className="block text-sage-500/70 text-xs font-light mb-1">{site.contact.phoneName}</small>
+              <a
+                href={`tel:${site.contact.phone.replace(/-/g, '')}`}
+                className="inline-block px-3 py-1 bg-sage-600 text-cream-50 rounded text-xs font-semibold hover:bg-sage-500 transition-colors"
+              >
+                Call Now
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
@@ -237,9 +243,9 @@ export default function HomePage() {
         <div className="mt-10">
           <h3 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Apply as a Guest Artist</h3>
           <p className="text-gray-600 font-light leading-relaxed mb-4">
-            Artists who are Maine residents, or who live in Maine a substantial part of the year, are
-            welcome to apply to be Guest Artists in the {shows.season} summer season. Applications may
-            be submitted anytime.
+            Maine artists are welcome to apply as Guest Artists for the {shows.season} summer season.
+            Download the application form, fill it out, and send it to{' '}
+            <a href="mailto:suzannebecque@gmail.com" className="text-sage-600 font-medium">suzannebecque@gmail.com</a>.
           </p>
           <a
             href="/forms/Guest Artist Application.pdf"
