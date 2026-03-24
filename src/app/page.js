@@ -218,6 +218,13 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
+            <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">📞</div>
+            <div>
+              <a href={`tel:${site.contact.phone.replace(/-/g, '')}`} className="text-sage-700 font-medium text-sm">{site.contact.phone}</a>
+              <small className="block text-sage-500/70 text-xs font-light">{site.contact.phoneName} — tap to call on mobile</small>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-lg shrink-0">f</div>
             <div>
               <a href={site.social.facebook} target="_blank" className="text-sage-700 font-medium text-sm">Facebook</a>
