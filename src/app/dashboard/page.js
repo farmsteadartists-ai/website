@@ -43,7 +43,6 @@ export default function DashboardPage() {
       if (artistData.role === 'admin') {
         setIsAdmin(true)
 
-        // Admin: fetch all member artists
         const { data: allArtistsData } = await supabase
           .from('artists')
           .select('*')
@@ -52,7 +51,6 @@ export default function DashboardPage() {
 
         setAllArtists(allArtistsData || [])
 
-        // Admin: fetch all artworks
         const { data: artworkData } = await supabase
           .from('artworks')
           .select('*, artists(name)')
@@ -60,7 +58,6 @@ export default function DashboardPage() {
 
         setArtworks(artworkData || [])
       } else {
-        // Regular artist: fetch own artworks only
         const { data: artworkData } = await supabase
           .from('artworks')
           .select('*')
@@ -120,7 +117,7 @@ export default function DashboardPage() {
 
       <div className="px-6 py-6 space-y-6">
 
-        {/* ADMIN VIEW */}
+        {/* ADMIN VIEW — all artists */}
         {isAdmin && (
           <div className="bg-white rounded-xl p-5 border border-black/[0.04] shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -138,19 +135,27 @@ export default function DashboardPage() {
                     <div className="font-serif font-semibold text-sage-700 text-sm">{a.name}</div>
                     <div className="text-xs text-gray-400 font-light">{a.medium || 'No medium set'}</div>
                   </div>
-                  <Link
-                    href={`/dashboard/edit-profile?artist=${a.id}`}
-                    className="text-xs text-sage-600 border border-sage-600 px-2 py-1 rounded hover:bg-sage-600 hover:text-cream-50 transition-colors"
-                  >
-                    Edit
-                  </Link>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/dashboard/edit-profile?artist=${a.id}`}
+                      className="text-xs text-sage-600 border border-sage-600 px-2 py-1 rounded hover:bg-sage-600 hover:text-cream-50 transition-colors"
+                    >
+                      Edit Profile
+                    </Link>
+                    <Link
+                      href={`/dashboard/add-artwork?artist=${a.id}`}
+                      className="text-xs bg-sage-600 text-cream-50 px-2 py-1 rounded hover:bg-sage-500 transition-colors"
+                    >
+                      + Artwork
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* PROFILE CARD — shown for regular artists only */}
+        {/* PROFILE CARD — regular artists only */}
         {!isAdmin && (
           <div className="bg-white rounded-xl p-5 border border-black/[0.04] shadow-sm">
             <div className="flex items-center gap-4 mb-4">
@@ -191,12 +196,14 @@ export default function DashboardPage() {
               {isAdmin ? `All Artwork (${artworks.length})` : `My Artwork (${artworks.length})`}
             </h2>
           </div>
-          <Link
-            href="/dashboard/add-artwork"
-            className="block w-full text-center py-4 mb-4 border-2 border-dashed border-sage-600/30 text-sage-600 rounded-xl font-semibold text-lg hover:border-sage-600 hover:bg-sage-600/5 transition-colors"
-          >
-            + Add Artwork
-          </Link>
+          {!isAdmin && (
+            <Link
+              href="/dashboard/add-artwork"
+              className="block w-full text-center py-4 mb-4 border-2 border-dashed border-sage-600/30 text-sage-600 rounded-xl font-semibold text-lg hover:border-sage-600 hover:bg-sage-600/5 transition-colors"
+            >
+              + Add Artwork
+            </Link>
+          )}
           <div className="space-y-3">
             {artworks.map((work) => (
               <Link
