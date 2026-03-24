@@ -3,23 +3,27 @@
 // Path:   src/app/dashboard/add-artwork/page.js
 // Desc:   Add artwork — title, medium, size, price, photo
 //         Phone-first: camera opens for photo, big tap targets
+//         Admin can add artwork for any artist via ?artist=ID
 // ============================================================
 
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function AddArtworkPage() {
+function AddArtworkForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const artistIdParam = searchParams.get('artist')
+
   const [artist, setArtist] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
 
-  // Form
   const [title, setTitle] = useState('')
   const [medium, setMedium] = useState('')
   const [size, setSize] = useState('')
@@ -30,18 +34,37 @@ export default function AddArtworkPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data } = await supabase
+      const { data: loggedInArtist } = await supabase
         .from('artists')
-        .select('id, name')
+        .select('id, name, role')
         .eq('user_id', user.id)
         .single()
 
-      if (!data) { router.push('/dashboard'); return }
-      setArtist(data)
+      if (!loggedInArtist) { router.push('/dashboard'); return }
+
+      const adminUser = loggedInArtist.role === 'admin'
+      setIsAdmin(adminUser)
+
+      // Admin adding artwork for another artist
+      if (adminUser && artistIdParam) {
+        const { data: targetArtist } = await supabase
+          .from('artists')
+          .select('id, name')
+          .eq('id', artistIdParam)
+          .single()
+
+        if (targetArtist) {
+          setArtist(targetArtist)
+          setLoading(false)
+          return
+        }
+      }
+
+      setArtist(loggedInArtist)
       setLoading(false)
     }
     load()
-  }, [router])
+  }, [router, artistIdParam])
 
   function handlePhotoSelect(e) {
     const file = e.target.files[0]
@@ -59,7 +82,6 @@ export default function AddArtworkPage() {
 
     let photoUrl = null
 
-    // Upload photo if selected
     if (photoFile) {
       const ext = photoFile.name.split('.').pop()
       const filename = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
@@ -82,7 +104,6 @@ export default function AddArtworkPage() {
       photoUrl = publicUrl
     }
 
-    // Get current max sort_order
     const { data: existing } = await supabase
       .from('artworks')
       .select('sort_order')
@@ -92,7 +113,6 @@ export default function AddArtworkPage() {
 
     const nextSort = existing && existing.length > 0 ? existing[0].sort_order + 1 : 1
 
-    // Insert artwork
     const { error } = await supabase
       .from('artworks')
       .insert({
@@ -125,16 +145,16 @@ export default function AddArtworkPage() {
 
   return (
     <section className="min-h-screen bg-cream-100 pb-24">
-      {/* Header */}
       <div className="bg-sage-600 text-cream-50 px-6 py-5">
         <button onClick={() => router.push('/dashboard')} className="text-white/60 text-sm mb-1 hover:text-white">
           ← Dashboard
         </button>
-        <h1 className="font-serif text-xl font-bold">Add Artwork</h1>
+        <h1 className="font-serif text-xl font-bold">
+          {isAdmin && artistIdParam ? `Add Artwork for ${artist?.name}` : 'Add Artwork'}
+        </h1>
       </div>
 
       <div className="px-6 py-6">
-        {/* Photo */}
         <div className="mb-6">
           <div className="aspect-square max-w-xs mx-auto rounded-xl overflow-hidden bg-white border-2 border-dashed border-sage-600/20 mb-3">
             {photoPreview ? (
@@ -168,7 +188,6 @@ export default function AddArtworkPage() {
           )}
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSave} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-sage-700 mb-1">Title *</label>
@@ -235,6 +254,18 @@ export default function AddArtworkPage() {
         </form>
       </div>
     </section>
+  )
+}
+
+export default function AddArtworkPage() {
+  return (
+    <Suspense fallback={
+      <section className="min-h-screen flex items-center justify-center bg-cream-100">
+        <p className="text-gray-400 font-light">Loading...</p>
+      </section>
+    }>
+      <AddArtworkForm />
+    </Suspense>
   )
 }
 
