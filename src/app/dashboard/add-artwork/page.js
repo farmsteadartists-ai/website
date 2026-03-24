@@ -2,7 +2,7 @@
 // Script: page.js (add-artwork)
 // Path:   src/app/dashboard/add-artwork/page.js
 // Desc:   Add artwork — title, medium, size, price, photo
-//         Phone-first: camera opens for photo, big tap targets
+//         Shows existing artworks below form to avoid duplicates
 //         Admin can add artwork for any artist via ?artist=ID
 // ============================================================
 
@@ -10,6 +10,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 function AddArtworkForm() {
   const router = useRouter()
@@ -17,6 +18,7 @@ function AddArtworkForm() {
   const artistIdParam = searchParams.get('artist')
 
   const [artist, setArtist] = useState(null)
+  const [existingArtworks, setExistingArtworks] = useState([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -45,22 +47,27 @@ function AddArtworkForm() {
       const adminUser = loggedInArtist.role === 'admin'
       setIsAdmin(adminUser)
 
-      // Admin adding artwork for another artist
+      let targetArtist = loggedInArtist
+
       if (adminUser && artistIdParam) {
-        const { data: targetArtist } = await supabase
+        const { data: ta } = await supabase
           .from('artists')
           .select('id, name')
           .eq('id', artistIdParam)
           .single()
-
-        if (targetArtist) {
-          setArtist(targetArtist)
-          setLoading(false)
-          return
-        }
+        if (ta) targetArtist = ta
       }
 
-      setArtist(loggedInArtist)
+      setArtist(targetArtist)
+
+      // Load existing artworks for this artist
+      const { data: existing } = await supabase
+        .from('artworks')
+        .select('*')
+        .eq('artist_id', targetArtist.id)
+        .order('sort_order')
+
+      setExistingArtworks(existing || [])
       setLoading(false)
     }
     load()
@@ -104,16 +111,11 @@ function AddArtworkForm() {
       photoUrl = publicUrl
     }
 
-    const { data: existing } = await supabase
-      .from('artworks')
-      .select('sort_order')
-      .eq('artist_id', artist.id)
-      .order('sort_order', { ascending: false })
-      .limit(1)
+    const nextSort = existingArtworks.length > 0
+      ? existingArtworks[existingArtworks.length - 1].sort_order + 1
+      : 1
 
-    const nextSort = existing && existing.length > 0 ? existing[0].sort_order + 1 : 1
-
-    const { error } = await supabase
+    const { data: newWork, error } = await supabase
       .from('artworks')
       .insert({
         artist_id: artist.id,
@@ -125,13 +127,22 @@ function AddArtworkForm() {
         sort_order: nextSort,
         status: 'available',
       })
+      .select()
+      .single()
 
     setSaving(false)
     if (error) {
       setMessage('Error: ' + error.message)
     } else {
       setMessage('Artwork added!')
-      setTimeout(() => router.push('/dashboard'), 1000)
+      // Add to existing list and reset form
+      setExistingArtworks(prev => [...prev, newWork])
+      setTitle('')
+      setMedium('')
+      setSize('')
+      setPrice('')
+      setPhotoFile(null)
+      setPhotoPreview(null)
     }
   }
 
@@ -155,6 +166,8 @@ function AddArtworkForm() {
       </div>
 
       <div className="px-6 py-6">
+
+        {/* Photo upload */}
         <div className="mb-6">
           <div className="aspect-square max-w-xs mx-auto rounded-xl overflow-hidden bg-white border-2 border-dashed border-sage-600/20 mb-3">
             {photoPreview ? (
@@ -164,30 +177,19 @@ function AddArtworkForm() {
                 <span className="text-4xl mb-2">📷</span>
                 <span className="text-sage-600 font-medium">Tap to add photo</span>
                 <span className="text-gray-400 text-sm font-light mt-1">Take a photo or choose from gallery</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handlePhotoSelect}
-                  className="hidden"
-                />
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" />
               </label>
             )}
           </div>
           {photoPreview && (
             <label className="block text-center cursor-pointer text-sage-600 text-sm font-medium">
               Change photo
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} className="hidden" />
             </label>
           )}
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSave} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-sage-700 mb-1">Title *</label>
@@ -198,7 +200,6 @@ function AddArtworkForm() {
               placeholder="e.g. Sunset at Schoodic"
               required
               className="w-full px-4 py-3.5 text-base rounded-lg border border-gray-200 bg-white focus:border-sage-600 outline-none"
-              autoFocus
             />
           </div>
 
@@ -252,6 +253,47 @@ function AddArtworkForm() {
             {saving ? 'Saving...' : 'Add Artwork'}
           </button>
         </form>
+
+        {/* Existing artworks */}
+        {existingArtworks.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-serif text-lg font-semibold text-sage-700 mb-3">
+              Already on file ({existingArtworks.length})
+            </h2>
+            <div className="space-y-2">
+              {existingArtworks.map((work) => (
+                <Link
+                  key={work.id}
+                  href={`/dashboard/edit-artwork/${work.id}`}
+                  className="flex items-center gap-3 bg-white rounded-lg p-3 border border-black/[0.04] hover:shadow-sm transition-shadow"
+                >
+                  <div className="w-12 h-12 rounded-md overflow-hidden bg-sage-600/5 flex-shrink-0">
+                    {work.photo_url ? (
+                      <img src={work.photo_url} alt={work.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-sage-500/30 text-xs">No photo</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-serif font-semibold text-sage-700 text-sm truncate">{work.title}</div>
+                    <div className="text-xs text-gray-400 font-light">
+                      {work.medium}{work.size ? ` · ${work.size}` : ''}{work.price ? ` · $${work.price}` : ''}
+                    </div>
+                  </div>
+                  <div className="text-gray-300 text-sm">Edit ›</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {existingArtworks.length === 0 && (
+          <div className="mt-8 text-center text-gray-400 font-light text-sm">
+            No artwork on file yet — add the first piece above.
+          </div>
+        )}
       </div>
     </section>
   )
