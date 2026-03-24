@@ -2,7 +2,7 @@
 // Script: page.js (add-artwork)
 // Path:   src/app/dashboard/add-artwork/page.js
 // Desc:   Add artwork — title, medium, size, price, photo
-//         Shows existing artworks below form to avoid duplicates
+//         Shows artist profile + existing artworks below form
 //         Admin can add artwork for any artist via ?artist=ID
 // ============================================================
 
@@ -38,7 +38,7 @@ function AddArtworkForm() {
 
       const { data: loggedInArtist } = await supabase
         .from('artists')
-        .select('id, name, role')
+        .select('*')
         .eq('user_id', user.id)
         .single()
 
@@ -52,7 +52,7 @@ function AddArtworkForm() {
       if (adminUser && artistIdParam) {
         const { data: ta } = await supabase
           .from('artists')
-          .select('id, name')
+          .select('*')
           .eq('id', artistIdParam)
           .single()
         if (ta) targetArtist = ta
@@ -60,7 +60,6 @@ function AddArtworkForm() {
 
       setArtist(targetArtist)
 
-      // Load existing artworks for this artist
       const { data: existing } = await supabase
         .from('artworks')
         .select('*')
@@ -135,7 +134,6 @@ function AddArtworkForm() {
       setMessage('Error: ' + error.message)
     } else {
       setMessage('Artwork added!')
-      // Add to existing list and reset form
       setExistingArtworks(prev => [...prev, newWork])
       setTitle('')
       setMedium('')
@@ -166,6 +164,25 @@ function AddArtworkForm() {
       </div>
 
       <div className="px-6 py-6">
+
+        {/* Artist profile header */}
+        <div className="flex items-center gap-3 mb-6 p-4 bg-white rounded-xl border border-black/[0.04]">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-sage-600/10 flex-shrink-0">
+            {artist.photo_url ? (
+              <img src={artist.photo_url} alt={artist.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="font-serif text-lg font-bold text-sage-600/30">
+                  {artist.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="font-serif font-semibold text-sage-700">{artist.name}</div>
+            <div className="text-xs text-gray-400 font-light">{artist.medium || 'Member Artist'}</div>
+          </div>
+        </div>
 
         {/* Photo upload */}
         <div className="mb-6">
@@ -255,11 +272,15 @@ function AddArtworkForm() {
         </form>
 
         {/* Existing artworks */}
-        {existingArtworks.length > 0 && (
-          <div className="mt-10">
-            <h2 className="font-serif text-lg font-semibold text-sage-700 mb-3">
-              Already on file ({existingArtworks.length})
-            </h2>
+        <div className="mt-10">
+          <h2 className="font-serif text-lg font-semibold text-sage-700 mb-3">
+            Already on file ({existingArtworks.length})
+          </h2>
+          {existingArtworks.length === 0 ? (
+            <div className="text-center text-gray-400 font-light text-sm py-4">
+              No artwork on file yet — add the first piece above.
+            </div>
+          ) : (
             <div className="space-y-2">
               {existingArtworks.map((work) => (
                 <Link
@@ -286,14 +307,8 @@ function AddArtworkForm() {
                 </Link>
               ))}
             </div>
-          </div>
-        )}
-
-        {existingArtworks.length === 0 && (
-          <div className="mt-8 text-center text-gray-400 font-light text-sm">
-            No artwork on file yet — add the first piece above.
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   )
