@@ -6,11 +6,11 @@
 // ============================================================
 
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function EditProfilePage() {
+function EditProfileForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const artistIdParam = searchParams.get('artist')
@@ -22,7 +22,6 @@ export default function EditProfilePage() {
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
 
-  // Form fields
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
   const [medium, setMedium] = useState('')
@@ -33,7 +32,6 @@ export default function EditProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      // Get logged-in artist to check role
       const { data: loggedInArtist } = await supabase
         .from('artists')
         .select('*')
@@ -45,7 +43,6 @@ export default function EditProfilePage() {
       const adminUser = loggedInArtist.role === 'admin'
       setIsAdmin(adminUser)
 
-      // If admin and artist param provided, load that artist
       if (adminUser && artistIdParam) {
         const { data: targetArtist } = await supabase
           .from('artists')
@@ -64,7 +61,6 @@ export default function EditProfilePage() {
         }
       }
 
-      // Otherwise load own profile
       setArtist(loggedInArtist)
       setName(loggedInArtist.name || '')
       setBio(loggedInArtist.bio || '')
@@ -138,7 +134,6 @@ export default function EditProfilePage() {
 
   return (
     <section className="min-h-screen bg-cream-100 pb-24">
-      {/* Header */}
       <div className="bg-sage-600 text-cream-50 px-6 py-5">
         <button onClick={() => router.push('/dashboard')} className="text-white/60 text-sm mb-1 hover:text-white">
           ← Dashboard
@@ -149,7 +144,6 @@ export default function EditProfilePage() {
       </div>
 
       <div className="px-6 py-6">
-        {/* Photo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-28 h-28 rounded-full overflow-hidden bg-sage-600/10 mb-3">
             {artist.photo_url ? (
@@ -175,7 +169,6 @@ export default function EditProfilePage() {
           </label>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSave} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-sage-700 mb-1">Name</label>
@@ -236,6 +229,18 @@ export default function EditProfilePage() {
         </form>
       </div>
     </section>
+  )
+}
+
+export default function EditProfilePage() {
+  return (
+    <Suspense fallback={
+      <section className="min-h-screen flex items-center justify-center bg-cream-100">
+        <p className="text-gray-400 font-light">Loading...</p>
+      </section>
+    }>
+      <EditProfileForm />
+    </Suspense>
   )
 }
 
