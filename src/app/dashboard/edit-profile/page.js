@@ -2,16 +2,21 @@
 // Script: page.js (edit-profile)
 // Path:   src/app/dashboard/edit-profile/page.js
 // Desc:   Edit name, statement, medium, photo — phone-first
+//         Admin can edit any artist via ?artist=ID param
 // ============================================================
 
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function EditProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const artistIdParam = searchParams.get('artist')
+
   const [artist, setArtist] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -28,23 +33,47 @@ export default function EditProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data } = await supabase
+      // Get logged-in artist to check role
+      const { data: loggedInArtist } = await supabase
         .from('artists')
         .select('*')
         .eq('user_id', user.id)
         .single()
 
-      if (!data) { router.push('/dashboard'); return }
+      if (!loggedInArtist) { router.push('/dashboard'); return }
 
-      setArtist(data)
-      setName(data.name || '')
-      setBio(data.bio || '')
-      setMedium(data.medium || '')
-      setWebsite(data.website || '')
+      const adminUser = loggedInArtist.role === 'admin'
+      setIsAdmin(adminUser)
+
+      // If admin and artist param provided, load that artist
+      if (adminUser && artistIdParam) {
+        const { data: targetArtist } = await supabase
+          .from('artists')
+          .select('*')
+          .eq('id', artistIdParam)
+          .single()
+
+        if (targetArtist) {
+          setArtist(targetArtist)
+          setName(targetArtist.name || '')
+          setBio(targetArtist.bio || '')
+          setMedium(targetArtist.medium || '')
+          setWebsite(targetArtist.website || '')
+          setLoading(false)
+          return
+        }
+      }
+
+      // Otherwise load own profile
+      setArtist(loggedInArtist)
+      setName(loggedInArtist.name || '')
+      setBio(loggedInArtist.bio || '')
+      setMedium(loggedInArtist.medium || '')
+      setWebsite(loggedInArtist.website || '')
       setLoading(false)
     }
     load()
-  }, [router])
+  }, [router, artistIdParam])
 
   async function handleSave(e) {
     e.preventDefault()
@@ -72,7 +101,6 @@ export default function EditProfilePage() {
     setUploading(true)
     setMessage('')
 
-    // Upload to Supabase Storage
     const ext = file.name.split('.').pop()
     const path = `${artist.id}/headshot.${ext}`
 
@@ -86,12 +114,10 @@ export default function EditProfilePage() {
       return
     }
 
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('uploads')
       .getPublicUrl(path)
 
-    // Update artist record
     await supabase
       .from('artists')
       .update({ photo_url: publicUrl })
@@ -117,7 +143,9 @@ export default function EditProfilePage() {
         <button onClick={() => router.push('/dashboard')} className="text-white/60 text-sm mb-1 hover:text-white">
           ← Dashboard
         </button>
-        <h1 className="font-serif text-xl font-bold">Edit My Profile</h1>
+        <h1 className="font-serif text-xl font-bold">
+          {isAdmin && artistIdParam ? `Editing: ${artist?.name}` : 'Edit My Profile'}
+        </h1>
       </div>
 
       <div className="px-6 py-6">
