@@ -1,14 +1,28 @@
 // ============================================================
 // Script: supabase.js
 // Path:   src/lib/supabase.js
-// Desc:   Supabase client — implicit flow for magic links
+// Desc:   Supabase client — lazy init for build compatibility
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+let _supabase = null
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+  }
+  return _supabase
+}
+
+// backward-compatible named export (calls getter)
+export const supabase = new Proxy({}, {
+  get(_, prop) {
+    return getSupabase()[prop]
+  }
+})
 
 // end of file

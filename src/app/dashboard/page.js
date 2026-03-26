@@ -3,59 +3,53 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-function slugify(name) {
-  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-}
-
-// ── component ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const supabase = createClientComponentClient();
   const router = useRouter();
 
-  // auth
-  const [user, setUser] = useState(null);
-  const [artist, setArtist] = useState(null);
+  const [supabase, setSupabase] = useState(null);
+  const [artist, setArtist]     = useState(null);
 
-  // profile form
-  const [bio, setBio] = useState('');
-  const [website, setWebsite] = useState('');
-  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
+  // profile
+  const [bio, setBio]                                 = useState('');
+  const [website, setWebsite]                         = useState('');
+  const [profilePhotoFile, setProfilePhotoFile]       = useState(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMsg, setProfileMsg] = useState('');
+  const [profileSaving, setProfileSaving]             = useState(false);
+  const [profileMsg, setProfileMsg]                   = useState('');
   const profilePhotoRef = useRef();
 
   // artworks
-  const [artworks, setArtworks] = useState([]);
-  const [editingArtwork, setEditingArtwork] = useState(null); // artwork object being edited
+  const [artworks, setArtworks]             = useState([]);
+  const [editingArtwork, setEditingArtwork] = useState(null);
 
   // add artwork form
-  const [newTitle, setNewTitle] = useState('');
-  const [newMedium, setNewMedium] = useState('');
-  const [newSize, setNewSize] = useState('');
-  const [newPrice, setNewPrice] = useState('');
-  const [newPhotoFile, setNewPhotoFile] = useState(null);
+  const [newTitle, setNewTitle]               = useState('');
+  const [newMedium, setNewMedium]             = useState('');
+  const [newSize, setNewSize]                 = useState('');
+  const [newPrice, setNewPrice]               = useState('');
+  const [newPhotoFile, setNewPhotoFile]       = useState(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
-  const [addingArtwork, setAddingArtwork] = useState(false);
-  const [artworkMsg, setArtworkMsg] = useState('');
+  const [addingArtwork, setAddingArtwork]     = useState(false);
+  const [artworkMsg, setArtworkMsg]           = useState('');
   const newPhotoRef = useRef();
 
-  // ── init ───────────────────────────────────────────────────────────────────
+  // ── init (client-side only) ────────────────────────────────────────────────
 
   useEffect(() => {
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/login'); return; }
-      setUser(session.user);
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      setSupabase(sb);
 
-      const { data: artistData } = await supabase
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { router.push('/login'); return; }
+
+      const { data: artistData } = await sb
         .from('artists')
         .select('*')
         .eq('email', session.user.email)
@@ -66,14 +60,14 @@ export default function DashboardPage() {
         setBio(artistData.bio || '');
         setWebsite(artistData.website || '');
         setProfilePhotoPreview(artistData.photo_url || null);
-        loadArtworks(artistData.id);
+        loadArtworks(sb, artistData.id);
       }
     }
     init();
   }, []);
 
-  async function loadArtworks(artistId) {
-    const { data } = await supabase
+  async function loadArtworks(sb, artistId) {
+    const { data } = await sb
       .from('artworks')
       .select('*')
       .eq('artist_id', artistId)
@@ -81,14 +75,12 @@ export default function DashboardPage() {
     setArtworks(data || []);
   }
 
-  // ── sign out ───────────────────────────────────────────────────────────────
-
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.push('/');
   }
 
-  // ── profile photo pick ────────────────────────────────────────────────────
+  // ── profile ────────────────────────────────────────────────────────────────
 
   function handleProfilePhotoChange(e) {
     const file = e.target.files?.[0];
@@ -97,13 +89,10 @@ export default function DashboardPage() {
     setProfilePhotoPreview(URL.createObjectURL(file));
   }
 
-  // ── save profile ───────────────────────────────────────────────────────────
-
   async function handleSaveProfile() {
-    if (!artist) return;
+    if (!artist || !supabase) return;
     setProfileSaving(true);
     setProfileMsg('');
-
     let photo_url = artist.photo_url;
 
     if (profilePhotoFile) {
@@ -117,9 +106,7 @@ export default function DashboardPage() {
         setProfileSaving(false);
         return;
       }
-      const { data: urlData } = supabase.storage
-        .from('artwork-images')
-        .getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('artwork-images').getPublicUrl(path);
       photo_url = urlData.publicUrl;
     }
 
@@ -138,7 +125,7 @@ export default function DashboardPage() {
     }
   }
 
-  // ── add artwork photo pick ─────────────────────────────────────────────────
+  // ── add artwork ────────────────────────────────────────────────────────────
 
   function handleNewPhotoChange(e) {
     const file = e.target.files?.[0];
@@ -147,20 +134,17 @@ export default function DashboardPage() {
     setNewPhotoPreview(URL.createObjectURL(file));
   }
 
-  // ── add artwork submit ─────────────────────────────────────────────────────
-
   async function handleAddArtwork(e) {
     e.preventDefault();
     if (!newTitle.trim()) { setArtworkMsg('Title is required.'); return; }
+    if (!supabase) return;
     setAddingArtwork(true);
     setArtworkMsg('');
-
     let photo_url = null;
 
     if (newPhotoFile) {
       const ext = newPhotoFile.name.split('.').pop();
-      const filename = `${artist.slug}-${Date.now()}.${ext}`;
-      const path = `artworks/${filename}`;
+      const path = `artworks/${artist.slug}-${Date.now()}.${ext}`;
       const { error: uploadErr } = await supabase.storage
         .from('artwork-images')
         .upload(path, newPhotoFile, { upsert: true });
@@ -169,9 +153,7 @@ export default function DashboardPage() {
         setAddingArtwork(false);
         return;
       }
-      const { data: urlData } = supabase.storage
-        .from('artwork-images')
-        .getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('artwork-images').getPublicUrl(path);
       photo_url = urlData.publicUrl;
     }
 
@@ -186,89 +168,74 @@ export default function DashboardPage() {
 
     setAddingArtwork(false);
     if (error) {
-      setArtworkMsg('Error adding artwork: ' + error.message);
+      setArtworkMsg('Error: ' + error.message);
     } else {
       setNewTitle(''); setNewMedium(''); setNewSize(''); setNewPrice('');
       setNewPhotoFile(null); setNewPhotoPreview(null);
       if (newPhotoRef.current) newPhotoRef.current.value = '';
       setArtworkMsg('Artwork added ✓');
       setTimeout(() => setArtworkMsg(''), 3000);
-      loadArtworks(artist.id);
+      loadArtworks(supabase, artist.id);
     }
   }
 
-  // ── inline edit artwork ────────────────────────────────────────────────────
+  // ── edit / delete artwork ──────────────────────────────────────────────────
 
   async function handleSaveArtwork(artwork) {
+    if (!supabase) return;
     const { error } = await supabase
       .from('artworks')
-      .update({
-        title: artwork.title,
-        medium: artwork.medium,
-        size: artwork.size,
-        price: artwork.price,
-      })
+      .update({ title: artwork.title, medium: artwork.medium, size: artwork.size, price: artwork.price })
       .eq('id', artwork.id);
-    if (!error) {
-      setEditingArtwork(null);
-      loadArtworks(artist.id);
-    }
+    if (!error) { setEditingArtwork(null); loadArtworks(supabase, artist.id); }
   }
 
   async function handleDeleteArtwork(id) {
-    if (!confirm('Delete this artwork?')) return;
+    if (!supabase || !confirm('Delete this artwork?')) return;
     await supabase.from('artworks').delete().eq('id', id);
-    loadArtworks(artist.id);
+    loadArtworks(supabase, artist.id);
   }
+
+  // ── styles ─────────────────────────────────────────────────────────────────
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px', border: '1px solid #ddd',
+    borderRadius: '6px', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit',
+  };
+  const labelStyle = {
+    display: 'block', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '4px',
+  };
+  const sectionStyle = {
+    background: '#fff', borderRadius: '10px', padding: '24px',
+    marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+  };
+  const btnPrimary = {
+    background: '#8b1a1a', color: '#fff', border: 'none',
+    padding: '11px 28px', borderRadius: '6px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
+  };
+  const btnSmall = {
+    background: '#8b1a1a', color: '#fff', border: 'none',
+    padding: '6px 14px', borderRadius: '5px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginRight: '8px',
+  };
+  const btnGhost = {
+    background: 'transparent', color: '#666', border: '1px solid #ccc',
+    padding: '6px 14px', borderRadius: '5px', fontSize: '13px', cursor: 'pointer',
+  };
 
   // ── render ─────────────────────────────────────────────────────────────────
 
   if (!artist) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading your dashboard…</p>
+        <p style={{ color: '#888', fontFamily: 'Georgia, serif' }}>Loading your dashboard…</p>
       </div>
     );
   }
 
-  const inputStyle = {
-    width: '100%', padding: '10px 12px', border: '1px solid #ddd',
-    borderRadius: '6px', fontSize: '15px', boxSizing: 'border-box',
-    fontFamily: 'inherit',
-  };
-
-  const labelStyle = {
-    display: 'block', fontSize: '13px', fontWeight: '600',
-    color: '#555', marginBottom: '4px',
-  };
-
-  const sectionStyle = {
-    background: '#fff', borderRadius: '10px', padding: '24px',
-    marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  };
-
-  const btnPrimary = {
-    background: '#8b1a1a', color: '#fff', border: 'none',
-    padding: '11px 28px', borderRadius: '6px', fontSize: '15px',
-    fontWeight: '600', cursor: 'pointer',
-  };
-
-  const btnSmall = {
-    background: '#8b1a1a', color: '#fff', border: 'none',
-    padding: '6px 14px', borderRadius: '5px', fontSize: '13px',
-    fontWeight: '600', cursor: 'pointer', marginRight: '8px',
-  };
-
-  const btnGhost = {
-    background: 'transparent', color: '#666', border: '1px solid #ccc',
-    padding: '6px 14px', borderRadius: '5px', fontSize: '13px',
-    cursor: 'pointer',
-  };
-
   return (
     <div style={{ background: '#f5f0eb', minHeight: '100vh', paddingBottom: '60px' }}>
 
-      {/* header bar */}
+      {/* header */}
       <div style={{ background: '#8b1a1a', color: '#fff', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontWeight: '700', fontSize: '17px' }}>{artist.name}</div>
@@ -284,19 +251,14 @@ export default function DashboardPage() {
 
       <div style={{ maxWidth: '680px', margin: '32px auto', padding: '0 16px' }}>
 
-        {/* ── PROFILE SECTION ── */}
+        {/* ── PROFILE ── */}
         <div style={sectionStyle}>
           <h2 style={{ margin: '0 0 20px', fontSize: '18px', color: '#2d2d2d' }}>My Profile</h2>
 
-          {/* headshot */}
           <div style={{ marginBottom: '18px', textAlign: 'center' }}>
             <div
               onClick={() => profilePhotoRef.current?.click()}
-              style={{
-                width: 100, height: 100, borderRadius: '50%', margin: '0 auto 8px',
-                background: '#eee', overflow: 'hidden', cursor: 'pointer',
-                border: '3px solid #8b1a1a', position: 'relative',
-              }}
+              style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 8px', background: '#eee', overflow: 'hidden', cursor: 'pointer', border: '3px solid #8b1a1a' }}
             >
               {profilePhotoPreview
                 ? <img src={profilePhotoPreview} alt="headshot" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -309,28 +271,16 @@ export default function DashboardPage() {
             <input ref={profilePhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleProfilePhotoChange} />
           </div>
 
-          {/* bio */}
           <div style={{ marginBottom: '16px' }}>
             <label style={labelStyle}>Bio</label>
-            <textarea
-              value={bio}
-              onChange={e => setBio(e.target.value)}
-              rows={4}
-              placeholder="Tell visitors about your work and inspiration…"
-              style={{ ...inputStyle, resize: 'vertical' }}
-            />
+            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4}
+              placeholder="Tell visitors about your work…" style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
 
-          {/* website */}
           <div style={{ marginBottom: '20px' }}>
             <label style={labelStyle}>Website (optional)</label>
-            <input
-              type="url"
-              value={website}
-              onChange={e => setWebsite(e.target.value)}
-              placeholder="https://yoursite.com"
-              style={inputStyle}
-            />
+            <input type="url" value={website} onChange={e => setWebsite(e.target.value)}
+              placeholder="https://yoursite.com" style={inputStyle} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -341,26 +291,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── ARTWORKS SECTION ── */}
+        {/* ── ARTWORKS ── */}
         <div style={sectionStyle}>
           <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#2d2d2d' }}>My Artworks</h2>
           <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#777' }}>
             {artworks.length} piece{artworks.length !== 1 ? 's' : ''} on file
           </p>
 
-          {/* artwork list */}
           {artworks.map(aw => (
             <div key={aw.id} style={{ display: 'flex', gap: '12px', marginBottom: '16px', padding: '12px', background: '#faf9f7', borderRadius: '8px', border: '1px solid #ebe7e0' }}>
-
-              {/* thumbnail */}
               <div style={{ width: 56, height: 56, borderRadius: '6px', background: '#eee', overflow: 'hidden', flexShrink: 0 }}>
                 {aw.photo_url
                   ? <img src={aw.photo_url} alt={aw.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>🖼</div>
                 }
               </div>
-
-              {/* fields — view or edit */}
               <div style={{ flex: 1 }}>
                 {editingArtwork?.id === aw.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -391,20 +336,13 @@ export default function DashboardPage() {
             </div>
           ))}
 
-          {/* ── ADD ARTWORK FORM ── */}
+          {/* ── ADD ARTWORK ── */}
           <div style={{ borderTop: '1px solid #e5e0d8', paddingTop: '20px', marginTop: artworks.length > 0 ? '8px' : 0 }}>
             <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#2d2d2d' }}>Add Artwork</h3>
 
-            {/* photo upload */}
             <div
               onClick={() => newPhotoRef.current?.click()}
-              style={{
-                border: '2px dashed #ccc', borderRadius: '8px',
-                height: newPhotoPreview ? 'auto' : 100,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', marginBottom: '14px', overflow: 'hidden',
-                background: '#faf9f7',
-              }}
+              style={{ border: '2px dashed #ccc', borderRadius: '8px', height: newPhotoPreview ? 'auto' : 100, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: '14px', overflow: 'hidden', background: '#faf9f7' }}
             >
               {newPhotoPreview
                 ? <img src={newPhotoPreview} alt="preview" style={{ maxHeight: 180, maxWidth: '100%', display: 'block' }} />
