@@ -119,9 +119,9 @@ function DashboardInner() {
       const ext = profilePhotoFile.name.split('.').pop();
       const path = `artists/${artist.slug}.${ext}`;
       const { error: uploadErr } = await supabase.storage
-        .from('artwork-images').upload(path, profilePhotoFile, { upsert: true });
+        .from('artists').upload(path, profilePhotoFile, { upsert: true });
       if (uploadErr) { setProfileMsg('Upload failed: ' + uploadErr.message); setProfileSaving(false); return; }
-      const { data: urlData } = supabase.storage.from('artwork-images').getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('artists').getPublicUrl(path);
       photo_url = urlData.publicUrl;
     }
 
@@ -152,9 +152,9 @@ function DashboardInner() {
       const ext = newPhotoFile.name.split('.').pop();
       const path = `artworks/${artist.slug}-${Date.now()}.${ext}`;
       const { error: uploadErr } = await supabase.storage
-        .from('artwork-images').upload(path, newPhotoFile, { upsert: true });
+        .from('artworks').upload(path, newPhotoFile, { upsert: true });
       if (uploadErr) { setArtworkMsg('Upload failed: ' + uploadErr.message); setAddingArtwork(false); return; }
-      const { data: urlData } = supabase.storage.from('artwork-images').getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from('artworks').getPublicUrl(path);
       photo_url = urlData.publicUrl;
     }
 
