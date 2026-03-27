@@ -1,6 +1,5 @@
-// ============================================================
-// Script: page.js (contact)
-// Path:   src/app/contact/page.js
+// contact_page.js
+// src/app/contact/page.js
 // Desc:   Contact page with social links, barn info,
 //         and guest artist PDF application download
 // ============================================================
@@ -34,6 +33,12 @@ export default function ContactPage() {
             <div>
               <a href={`tel:${site.contact.phone.replace(/-/g, '')}`} className="text-sage-700 font-semibold text-lg">{site.contact.phone}</a>
               <p className="text-sage-500/70 text-sm font-light">{site.contact.phoneName} — Group contact</p>
+              <a
+                href={`tel:${site.contact.phone.replace(/-/g, '')}`}
+                className="mt-2 inline-block bg-sage-600 text-cream-50 px-4 py-1.5 rounded text-sm font-semibold tracking-wide hover:bg-sage-500 transition-colors"
+              >
+                Call (mobile)
+              </a>
             </div>
           </div>
 

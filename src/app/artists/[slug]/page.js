@@ -34,7 +34,7 @@ export default async function ArtistDetailPage({ params }) {
     .order('sort_order')
 
   return (
-    <section className="py-14 px-6 md:px-16 bg-cream-100 min-h-screen">
+    <section className="py-14 px-6 md:px-16 bg-gray-100 min-h-screen">
       {/* Breadcrumb */}
       <div className="mb-6">
         <Link href="/artists" className="text-sage-500 text-sm hover:text-sage-700 transition-colors">
