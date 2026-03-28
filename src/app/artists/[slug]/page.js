@@ -1,6 +1,6 @@
 // artist_slug_page.js
 // src/app/artists/[slug]/page.js
-// Desc: Artist detail page with lightbox, QR code top-right
+// Desc: Artist detail page — photo | bio | QR in one header row
 // ============================================================
 
 export const dynamic = 'force-dynamic'
@@ -45,16 +45,17 @@ export default async function ArtistDetailPage({ params }) {
   return (
     <section className="py-14 px-6 md:px-16 bg-gray-100 min-h-screen">
 
-      {/* Breadcrumb + QR row */}
-      <div className="flex items-start justify-between mb-6">
+      {/* Breadcrumb */}
+      <div className="mb-6">
         <Link href="/artists" className="text-sage-500 text-sm hover:text-sage-700 transition-colors">
           ← All Artists
         </Link>
-        <QRCodeWidget url={pageUrl} label={artist.slug} />
       </div>
 
-      {/* Artist header */}
-      <div className="flex flex-col md:flex-row gap-8 mb-10">
+      {/* Artist header — photo | bio | QR */}
+      <div className="flex flex-col md:flex-row gap-8 mb-10 items-start">
+
+        {/* Photo */}
         <div className="w-48 h-48 md:w-56 md:h-56 rounded-lg overflow-hidden bg-sage-600/10 flex-shrink-0">
           {artist.photo_url ? (
             <img src={artist.photo_url} alt={artist.name} className="w-full h-full object-cover" />
@@ -67,6 +68,7 @@ export default async function ArtistDetailPage({ params }) {
           )}
         </div>
 
+        {/* Bio — grows to fill available space */}
         <div className="flex-1">
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-sage-700 mb-2">{artist.name}</h1>
           {artist.medium && <div className="text-sage-500 font-light mb-4">{artist.medium}</div>}
@@ -82,6 +84,12 @@ export default async function ArtistDetailPage({ params }) {
             </a>
           )}
         </div>
+
+        {/* QR — desktop only, right column, same top alignment as photo */}
+        <div className="hidden md:block flex-shrink-0">
+          <QRCodeWidget url={pageUrl} label={artist.slug} />
+        </div>
+
       </div>
 
       {/* Artworks with lightbox */}
