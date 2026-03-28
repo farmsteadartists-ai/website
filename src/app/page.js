@@ -1,11 +1,11 @@
-// ============================================================
-// Script: page.js (home)
-// Path:   src/app/page.js
+// home_page.js
+// src/app/page.js
 // Desc:   Home page — hero, about, artists, calendar,
 //         history, signup, directions, contact
 // ============================================================
 
 import ArtistCard from '@/components/ArtistCard'
+import QRCodeWidget from '@/components/qr_code'
 import artists from '@/data/artists.json'
 import shows from '@/data/shows.json'
 import site from '@/data/site.json'
@@ -13,7 +13,7 @@ import site from '@/data/site.json'
 export default function HomePage() {
   return (
     <>
-      {/* ===== HERO — one barn photo, centered, simple ===== */}
+      {/* ===== HERO ===== */}
       <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-6 py-20 bg-charcoal">
         <div className="absolute inset-0">
           <img
@@ -42,37 +42,44 @@ export default function HomePage() {
 
       {/* ===== ABOUT ===== */}
       <section id="about" className="py-14 px-6 md:px-16 bg-cream-50">
-        <div className="max-w-2xl">
-          <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">About Us</div>
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-4 leading-tight">
-            Community Art in a<br />Historic Setting
-          </h2>
-          <p className="text-gray-600 font-light mb-4 leading-relaxed">
-            The Farmstead Artists are a select group of community, non-represented artists who display and sell
-            original artwork at the Farmstead Barn — a beautifully weathered structure on Route 1 in East Sullivan,
-            Maine that dates back to 1803.
-          </p>
-          <blockquote className="border-l-[3px] border-sage-600 pl-5 my-6 font-serif italic text-lg text-sage-700 leading-relaxed">
-            &ldquo;So many people came to the shows and shared their childhood memories of the barn.&rdquo;
-          </blockquote>
-          <p className="text-gray-600 font-light leading-relaxed">
-            Since our first summer in 2022, we&rsquo;ve grown into a collective of {site.stats.memberCount} members,
-            welcoming guest artists each season and drawing visitors from across Downeast Maine and beyond.
-            Our shows feature watercolors, oils, acrylics, collages, and drawings — plus prints and cards.
-          </p>
-          <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
-            <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-              <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.piecesSold2025}</span>
-              <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Pieces sold<br />in 2025</span>
+        <div className="flex items-start justify-between gap-8">
+          <div className="max-w-2xl">
+            <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">About Us</div>
+            <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-4 leading-tight">
+              Community Art in a<br />Historic Setting
+            </h2>
+            <p className="text-gray-600 font-light mb-4 leading-relaxed">
+              The Farmstead Artists are a select group of community, non-represented artists who display and sell
+              original artwork at the Farmstead Barn — a beautifully weathered structure on Route 1 in East Sullivan,
+              Maine that dates back to 1803.
+            </p>
+            <blockquote className="border-l-[3px] border-sage-600 pl-5 my-6 font-serif italic text-lg text-sage-700 leading-relaxed">
+              &ldquo;So many people came to the shows and shared their childhood memories of the barn.&rdquo;
+            </blockquote>
+            <p className="text-gray-600 font-light leading-relaxed">
+              Since our first summer in 2022, we&rsquo;ve grown into a collective of {site.stats.memberCount} members,
+              welcoming guest artists each season and drawing visitors from across Downeast Maine and beyond.
+              Our shows feature watercolors, oils, acrylics, collages, and drawings — plus prints and cards.
+            </p>
+            <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
+              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
+                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.piecesSold2025}</span>
+                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Pieces sold<br />in 2025</span>
+              </div>
+              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
+                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.summers}</span>
+                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Summers<br />&amp; counting</span>
+              </div>
+              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
+                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.memberCount}</span>
+                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Member<br />artists</span>
+              </div>
             </div>
-            <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-              <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.summers}</span>
-              <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Summers<br />&amp; counting</span>
-            </div>
-            <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-              <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.memberCount}</span>
-              <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Member<br />artists</span>
-            </div>
+          </div>
+
+          {/* QR code — right justified, hidden on small screens */}
+          <div className="hidden md:block flex-shrink-0 pt-8">
+            <QRCodeWidget url="https://farmsteadartists.org" label="farmstead-home" />
           </div>
         </div>
       </section>
@@ -98,12 +105,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== CALENDAR — Google Calendar embed ===== */}
+      {/* ===== CALENDAR ===== */}
       <section id="calendar" className="py-14 px-6 md:px-16 bg-sage-600 text-cream-50">
         <div className="text-[0.65rem] uppercase tracking-[0.2em] text-gold font-semibold mb-2">{shows.season} Season</div>
         <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">Show Dates</h2>
-
-        {/* Quick date cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {shows.shows.map((show) => (
             <div key={show.startDate} className="bg-white/[0.07] border border-white/10 rounded-lg p-4 text-center">
@@ -113,8 +118,6 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-
-        {/* Google Calendar embed */}
         <div className="bg-white/[0.07] border border-white/10 rounded-lg p-4">
           <iframe
             src="https://calendar.google.com/calendar/embed?src=farmsteadartists%40gmail.com&ctz=America%2FNew_York&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&bgcolor=%23ffffff"
@@ -127,7 +130,6 @@ export default function HomePage() {
             Fri–Sat {shows.hours.friday} · Sun {shows.hours.sunday}
           </p>
         </div>
-
         <div className="mt-6 text-center">
           <a href="#signup" className="inline-block text-gold text-sm font-medium tracking-wider uppercase border border-gold/40 px-6 py-2.5 rounded hover:bg-gold/15 transition-colors">
             Get show reminders →
@@ -205,7 +207,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== CONTACT + GUEST APPLICATION + PRESENTATIONS ===== */}
+      {/* ===== CONTACT ===== */}
       <section id="contact" className="py-14 px-6 md:px-16 bg-cream-100">
         <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Get in Touch</div>
         <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-5">Contact Us</h2>

@@ -1,6 +1,6 @@
 // artist_slug_page.js
 // src/app/artists/[slug]/page.js
-// Desc: Artist detail page with lightbox-enabled artwork grid
+// Desc: Artist detail page with lightbox, QR code top-right
 // ============================================================
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ArtworkGrid from '@/components/artwork_grid'
+import QRCodeWidget from '@/components/qr_code'
 
 export async function generateMetadata({ params }) {
   const { data: artist } = await supabase
@@ -39,13 +40,17 @@ export default async function ArtistDetailPage({ params }) {
     .eq('artist_id', artist.id)
     .order('sort_order')
 
+  const pageUrl = `https://farmsteadartists.org/artists/${artist.slug}`
+
   return (
     <section className="py-14 px-6 md:px-16 bg-gray-100 min-h-screen">
-      {/* Breadcrumb */}
-      <div className="mb-6">
+
+      {/* Breadcrumb + QR row */}
+      <div className="flex items-start justify-between mb-6">
         <Link href="/artists" className="text-sage-500 text-sm hover:text-sage-700 transition-colors">
           ← All Artists
         </Link>
+        <QRCodeWidget url={pageUrl} label={artist.slug} />
       </div>
 
       {/* Artist header */}
