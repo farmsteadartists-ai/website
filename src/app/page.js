@@ -4,9 +4,6 @@
 //         history, signup, directions, contact
 // ============================================================
 
-import ArtistCard from '@/components/ArtistCard'
-import QRCodeWidget from '@/components/qr_code'
-import artists from '@/data/artists.json'
 import shows from '@/data/shows.json'
 import site from '@/data/site.json'
 
@@ -42,8 +39,7 @@ export default function HomePage() {
 
       {/* ===== ABOUT ===== */}
       <section id="about" className="py-14 px-6 md:px-16 bg-cream-50">
-        <div className="flex items-start justify-between gap-8">
-          <div className="max-w-2xl">
+        <div className="max-w-2xl">
             <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">About Us</div>
             <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-4 leading-tight">
               Community Art in a<br />Historic Setting
@@ -75,33 +71,6 @@ export default function HomePage() {
                 <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Member<br />artists</span>
               </div>
             </div>
-          </div>
-
-          {/* QR code — right justified, hidden on small screens */}
-          <div className="hidden md:block flex-shrink-0 pt-8">
-            <QRCodeWidget url="https://farmsteadartists.org" label="farmstead-home" />
-          </div>
-        </div>
-      </section>
-
-      {/* ===== ARTISTS ===== */}
-      <section id="artists" className="py-14 px-6 md:px-16 bg-cream-100">
-        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Our Artists</div>
-        <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-6">Member Artists</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {artists.members.map((artist, i) => (
-            <ArtistCard key={artist.slug} name={artist.name} slug={artist.slug} index={i} />
-          ))}
-        </div>
-        <div className="mt-8 pt-6 border-t border-black/[0.06]">
-          <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-3">2025 Guest Artists</div>
-          <div className="flex flex-wrap gap-2">
-            {artists.guests2025.map(name => (
-              <span key={name} className="bg-cream-50 border border-black/[0.06] px-3 py-1.5 rounded-full text-sm text-sage-500">
-                {name}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 
