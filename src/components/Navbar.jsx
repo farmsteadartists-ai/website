@@ -6,6 +6,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
   { href: '/artists', label: 'Artists' },
+  { href: '/art-guide', label: 'Art Guide' },
   { href: '/calendar', label: '2026 Shows' },
   { href: '/directions', label: 'Visit Us' },
   { href: '/contact', label: 'Contact' },
@@ -65,3 +66,5 @@ export default function Navbar() {
     </>
   )
 }
+
+// end of file

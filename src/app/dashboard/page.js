@@ -229,6 +229,12 @@ function DashboardInner() {
       <div style={{ maxWidth: '680px', margin: '32px auto', padding: '0 16px' }}>
         <div style={sec}>
           <h2 style={{ margin: '0 0 20px', fontSize: '18px', color: '#2d2d2d' }}>All Artists</h2>
+          <div style={{ marginBottom: '16px' }}>
+            <button onClick={() => { window.location.href = '/dashboard/art-guide'; }}
+              style={{ background: '#3a6186', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+              🗺 Manage Art Guide
+            </button>
+          </div>
           {allArtists.filter(a => a.role !== 'admin').map(a => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 0', borderBottom: '1px solid #f0ebe4' }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#eee', overflow: 'hidden', flexShrink: 0 }}>
