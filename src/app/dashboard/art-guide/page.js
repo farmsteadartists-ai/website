@@ -48,7 +48,7 @@ function ArtGuideAdminInner() {
       const { data: me } = await sb
         .from('artists').select('role').eq('email', session.user.email).single();
 
-      if (!me || me.role !== 'admin') { router.push('/dashboard'); return; }
+      if (!me || me.is_admin !== true) { router.push('/dashboard'); return; }
       setIsAdmin(true);
       loadInstitutions(sb);
     }

@@ -60,7 +60,7 @@ function DashboardInner() {
       if (!me) return;
       setAuthArtist(me);
 
-      if (me.role === 'admin') {
+      if (me.is_admin === true) {
         setIsAdmin(true);
         const { data: all } = await sb
           .from('artists').select('id, name, slug, photo_url, role').order('sort_order');
@@ -235,7 +235,7 @@ function DashboardInner() {
               🗺 Manage Art Guide
             </button>
           </div>
-          {allArtists.filter(a => a.role !== 'admin').map(a => (
+          {allArtists.filter(a => a.role !== 'guest').map(a => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 0', borderBottom: '1px solid #f0ebe4' }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#eee', overflow: 'hidden', flexShrink: 0 }}>
                 {a.photo_url
