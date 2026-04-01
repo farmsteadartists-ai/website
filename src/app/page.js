@@ -6,8 +6,19 @@
 
 import shows from '@/data/shows.json'
 import site from '@/data/site.json'
+import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export default async function HomePage() {
+  const { data: members } = await supabase
+    .from('artists')
+    .select('name, slug, medium, photo_url')
+    .eq('role', 'member')
+    .not('photo_url', 'is', null)
+    .order('sort_order')
   return (
     <>
       {/* ===== HERO ===== */}
@@ -72,6 +83,31 @@ export default function HomePage() {
               </div>
             </div>
         </div>
+      </section>
+
+      {/* ===== ARTISTS — mobile only ===== */}
+      <section id="artists" className="md:hidden py-14 px-6 bg-cream-100">
+        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Our Artists</div>
+        <h2 className="font-serif text-3xl font-semibold text-sage-700 mb-4">Member Artists</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {(members || []).map(artist => (
+            <Link key={artist.slug} href={`/artists/${artist.slug}`} className="group block">
+              <div className="aspect-[3/4] rounded-lg overflow-hidden bg-sage-600/10 relative">
+                {artist.photo_url ? (
+                  <img src={artist.photo_url} alt={artist.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : null}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+                  <div className="font-serif font-semibold text-cream-50 text-sm leading-tight">{artist.name}</div>
+                  {artist.medium && <div className="text-[0.65rem] text-cream-50/70 font-light mt-0.5">{artist.medium}</div>}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+        <Link href="/artists" className="block mt-6 text-center py-3 border border-sage-600 text-sage-600 rounded font-semibold text-sm hover:bg-sage-600/5 transition-colors">
+          View All Artists →
+        </Link>
       </section>
 
       {/* ===== CALENDAR ===== */}
