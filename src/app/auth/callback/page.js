@@ -2,12 +2,12 @@
 // Script: page.js (auth-callback)
 // Path:   src/app/auth/callback/page.js
 // Desc:   Handles PKCE flow (?code=) and implicit flow
-//         (#access_token). Waits 300ms before redirect so
-//         localStorage session settles before dashboard reads it.
+//         (#access_token). Cleanup refs prevent stale timers
+//         from firing after redirect to dashboard.
 // ============================================================
 
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -16,47 +16,51 @@ function AuthCallbackInner() {
   const searchParams = useSearchParams()
   const [status, setStatus] = useState('Signing you in...')
 
-  useEffect(() => {
-    async function handleCallback() {
-      const code = searchParams.get('code')
+  // Refs so the useEffect cleanup can cancel these no matter when it runs
+  const timeoutRef      = useRef(null)
+  const subscriptionRef = useRef(null)
 
-      if (code) {
-        // ── PKCE flow ────────────────────────────────────────────────────
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+  useEffect(() => {
+    const code = searchParams.get('code')
+
+    if (code) {
+      // ── PKCE flow ──────────────────────────────────────────────────────
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
           setStatus('Sign in failed. Please try again.')
-          setTimeout(() => router.replace('/login'), 2000)
+          timeoutRef.current = setTimeout(() => router.replace('/login'), 2000)
         } else {
-          // Wait for session to settle in localStorage before dashboard reads it
-          setTimeout(() => router.replace('/dashboard'), 300)
+          timeoutRef.current = setTimeout(() => router.replace('/dashboard'), 300)
         }
+      })
 
-      } else {
-        // ── Implicit flow (#access_token hash) ───────────────────────────
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-              subscription.unsubscribe()
-              // Wait for session to settle in localStorage before dashboard reads it
-              setTimeout(() => router.replace('/dashboard'), 300)
-            }
+    } else {
+      // ── Implicit flow (#access_token hash) ─────────────────────────────
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            // Cancel the failure timeout — we succeeded
+            clearTimeout(timeoutRef.current)
+            subscription.unsubscribe()
+            timeoutRef.current = setTimeout(() => router.replace('/dashboard'), 300)
           }
-        )
-
-        const timeout = setTimeout(() => {
-          subscription.unsubscribe()
-          setStatus('Sign in failed. Please try again.')
-          setTimeout(() => router.replace('/login'), 2000)
-        }, 6000)
-
-        return () => {
-          subscription.unsubscribe()
-          clearTimeout(timeout)
         }
-      }
+      )
+      subscriptionRef.current = subscription
+
+      // Failure timeout — cleared above if SIGNED_IN fires first
+      timeoutRef.current = setTimeout(() => {
+        subscriptionRef.current?.unsubscribe()
+        setStatus('Sign in failed. Please try again.')
+        setTimeout(() => router.replace('/login'), 2000)
+      }, 6000)
     }
 
-    handleCallback()
+    // Cleanup — runs when component unmounts (i.e. after redirect)
+    return () => {
+      clearTimeout(timeoutRef.current)
+      subscriptionRef.current?.unsubscribe()
+    }
   }, [router, searchParams])
 
   return (
