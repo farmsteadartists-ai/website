@@ -1,11 +1,15 @@
-// dashboard_page.js
-// src/app/dashboard/page.js
+// ============================================================
+// Script: page.js (dashboard)
+// Path:   src/app/dashboard/page.js
+// Desc:   Unified artist + admin dashboard. Waits for session
+//         to be ready before querying — handles post-magic-link
+//         race condition where localStorage hasn't settled yet.
+// ============================================================
+
 'use client';
 
 import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-// ── inner component (uses useSearchParams) ─────────────────────────────────
 
 function DashboardInner() {
   const router       = useRouter();
@@ -16,6 +20,7 @@ function DashboardInner() {
   const [artist, setArtist]         = useState(null);
   const [allArtists, setAllArtists] = useState([]);
   const [isAdmin, setIsAdmin]       = useState(false);
+  const [loadError, setLoadError]   = useState('');
 
   // profile
   const [bio, setBio]                                 = useState('');
@@ -52,12 +57,36 @@ function DashboardInner() {
       );
       setSupabase(sb);
 
-      const { data: { session } } = await sb.auth.getSession();
+      // ── Wait for session — handles post-magic-link race condition ────────
+      // getSession() may return null if localStorage hasn't settled yet.
+      // We wait up to 5s for onAuthStateChange to confirm a real session.
+      let session = (await sb.auth.getSession()).data.session;
+
+      if (!session) {
+        session = await new Promise(resolve => {
+          const { data: { subscription } } = sb.auth.onAuthStateChange(
+            (event, s) => {
+              if (s) { subscription.unsubscribe(); resolve(s); }
+            }
+          );
+          setTimeout(() => { subscription.unsubscribe(); resolve(null); }, 5000);
+        });
+      }
+
       if (!session) { router.push('/login'); return; }
 
-      const { data: me } = await sb
-        .from('artists').select('*').eq('email', session.user.email).single();
-      if (!me) return;
+      // ── Look up artist record ────────────────────────────────────────────
+      const { data: me, error: meError } = await sb
+        .from('artists')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+
+      if (!me) {
+        setLoadError(`Artist record not found for ${session.user.email}. Please contact your admin.`);
+        return;
+      }
+
       setAuthArtist(me);
 
       if (me.is_admin === true) {
@@ -213,6 +242,22 @@ function DashboardInner() {
     </div>
   );
 
+  // ── error state ───────────────────────────────────────────────────────────
+
+  if (loadError) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f0eb' }}>
+      <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 24px' }}>
+        <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚠️</div>
+        <p style={{ color: '#8b1a1a', fontWeight: '600', marginBottom: '8px' }}>Login Problem</p>
+        <p style={{ color: '#666', fontSize: '14px', lineHeight: 1.6 }}>{loadError}</p>
+        <button onClick={() => router.push('/login')}
+          style={{ marginTop: '24px', background: '#8b1a1a', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+
   // ── loading ───────────────────────────────────────────────────────────────
 
   if (!authArtist) return (
@@ -364,8 +409,6 @@ function DashboardInner() {
     </div>
   );
 }
-
-// ── outer wrapper with Suspense (required for useSearchParams) ─────────────
 
 export default function DashboardPage() {
   return (

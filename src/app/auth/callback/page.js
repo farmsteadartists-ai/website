@@ -1,16 +1,15 @@
 // ============================================================
 // Script: page.js (auth-callback)
 // Path:   src/app/auth/callback/page.js
-// Desc:   Handles both PKCE flow (?code=) and implicit flow
-//         (#access_token). PKCE is the Supabase default.
+// Desc:   Handles PKCE flow (?code=) and implicit flow
+//         (#access_token). Waits 300ms before redirect so
+//         localStorage session settles before dashboard reads it.
 // ============================================================
 
 'use client'
 import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
-
-// ── inner component (needs useSearchParams → requires Suspense) ────────────
 
 function AuthCallbackInner() {
   const router       = useRouter()
@@ -22,23 +21,24 @@ function AuthCallbackInner() {
       const code = searchParams.get('code')
 
       if (code) {
-        // ── PKCE flow (Supabase default) ─────────────────────────────────
-        // Exchange the one-time code for a real session
+        // ── PKCE flow ────────────────────────────────────────────────────
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
           setStatus('Sign in failed. Please try again.')
           setTimeout(() => router.replace('/login'), 2000)
         } else {
-          router.replace('/dashboard')
+          // Wait for session to settle in localStorage before dashboard reads it
+          setTimeout(() => router.replace('/dashboard'), 300)
         }
+
       } else {
-        // ── Implicit flow fallback (#access_token hash) ──────────────────
-        // Supabase JS auto-processes the hash; we just wait for the event
+        // ── Implicit flow (#access_token hash) ───────────────────────────
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (event === 'SIGNED_IN' && session) {
               subscription.unsubscribe()
-              router.replace('/dashboard')
+              // Wait for session to settle in localStorage before dashboard reads it
+              setTimeout(() => router.replace('/dashboard'), 300)
             }
           }
         )
@@ -68,8 +68,6 @@ function AuthCallbackInner() {
     </section>
   )
 }
-
-// ── outer wrapper — Suspense required by Next.js for useSearchParams ────────
 
 export default function AuthCallbackPage() {
   return (
