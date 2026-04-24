@@ -46,7 +46,7 @@ function ArtGuideAdminInner() {
       if (!session) { router.push('/login'); return; }
 
       const { data: me } = await sb
-        .from('artists').select('role').eq('email', session.user.email).single();
+        .from('artists').select('role, is_admin').eq('email', session.user.email).single();
 
       if (!me || me.is_admin !== true) { router.push('/dashboard'); return; }
       setIsAdmin(true);
