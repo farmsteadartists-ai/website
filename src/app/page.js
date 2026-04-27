@@ -21,29 +21,23 @@ export default async function HomePage() {
   return (
     <>
       {/* ===== HERO ===== */}
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-6 py-20 bg-charcoal">
+      <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-6 py-16 bg-charcoal">
         <div className="absolute inset-0">
           <img
             src="/images/barn/barn-exterior.jpg"
             alt="The Farmstead Barn, East Sullivan, Maine"
-            className="w-full h-full object-cover opacity-45"
+            className="w-full h-full object-cover opacity-25"
           />
         </div>
         <div className="relative z-10 text-cream-50">
-          <span className="inline-block text-sm font-bold tracking-[0.2em] uppercase text-gold border-2 border-gold/60 px-4 py-2 rounded-sm mb-5">
-            East Sullivan, Maine
-          </span>
-          <h1 className="font-serif text-5xl md:text-7xl font-bold leading-[1.1] mb-3">
+          <h1 className="font-serif text-5xl md:text-7xl font-bold leading-[1.1] mb-6">
             Farmstead<br />Artists
           </h1>
-          <p className="text-lg md:text-xl font-light opacity-90 mb-8 max-w-md mx-auto">
-            Original art in a historic barn on Route 1. Four weekends each summer since 2022.
-          </p>
-          <div className="inline-block bg-black/30 border border-white/15 rounded-md px-6 py-4">
-            <div className="text-[0.65rem] uppercase tracking-[0.18em] text-gold font-semibold mb-1">Next Show</div>
-            <div className="font-serif text-xl font-semibold">{shows.shows[0].dates}, {shows.season}</div>
-            <div className="text-sm opacity-70 font-light">Fri–Sat {shows.hours.friday} · Sun {shows.hours.sunday}</div>
-          </div>
+          <img
+            src="/archive/flexit-flyer-front.png"
+            alt="Farmstead Artists at the Flexit Cafe — May 12 to June 10, 2026"
+            className="max-w-[250px] md:max-w-[300px] mx-auto rounded-lg shadow-2xl mb-8"
+          />
         </div>
       </section>
 
@@ -217,7 +211,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== CONTACT ===== */}
+      {/* ===== CONTACT — 4 boxes horizontal ===== */}
       <section id="contact" className="py-14 px-6 md:px-16 bg-cream-100">
         <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Get in Touch</div>
         <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-5">Contact Us</h2>
@@ -225,27 +219,31 @@ export default async function HomePage() {
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
             <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">✉</div>
             <div>
-              <a href={`mailto:${site.contact.email}`} className="text-sage-700 font-medium text-sm">{site.contact.email}</a>
-              <small className="block text-sage-500/70 text-xs font-light">General inquiries &amp; show information</small>
+              <a href={`mailto:${site.contact.email}`} className="text-sage-700 font-semibold text-sm hover:underline">{site.contact.email}</a>
+              <small className="block text-sage-500/70 text-xs font-light">General inquiries &amp; show info</small>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
             <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">📞</div>
             <div>
-              <div className="text-sage-700 font-medium text-sm">{site.contact.phone}</div>
-              <small className="block text-sage-500/70 text-xs font-light mb-1">{site.contact.phoneName}</small>
-              <a
-                href={`tel:${site.contact.phone.replace(/-/g, '')}`}
-                className="inline-block px-3 py-1 bg-sage-600 text-cream-50 rounded text-xs font-semibold hover:bg-sage-500 transition-colors"
-              >
-                Call Now
-              </a>
+              <div className="text-sage-700 font-semibold text-sm">Carol Michaud</div>
+              <small className="block text-sage-500/70 text-xs font-light">Public Relations</small>
+              <a href="tel:2079749366" className="text-sage-600 font-semibold text-sm hover:underline">207-974-9366</a>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
+            <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">🎨</div>
+            <div>
+              <div className="text-sage-700 font-semibold text-sm">Suzanne Becque</div>
+              <small className="block text-sage-500/70 text-xs font-light">Guest artist inquiries</small>
+              <a href="mailto:suzannebecque@gmail.com" className="text-sage-700 text-xs block hover:underline">suzannebecque@gmail.com</a>
+              <a href="tel:2072148730" className="text-sage-600 font-semibold text-sm hover:underline">207-214-8730</a>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-lg shrink-0">f</div>
             <div>
-              <a href={site.social.facebook} target="_blank" className="text-sage-700 font-medium text-sm">Facebook</a>
+              <a href={site.social.facebook} target="_blank" className="text-sage-700 font-semibold text-sm hover:underline">Facebook</a>
               <small className="block text-sage-500/70 text-xs font-light">Photos &amp; show updates</small>
             </div>
           </div>
@@ -288,6 +286,13 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ===== ADDRESS ===== */}
+      <section className="bg-charcoal py-5 text-center">
+        <p className="text-white font-serif text-lg md:text-xl font-semibold tracking-wide">
+          2816 US-1 · Sullivan, ME 04664
+        </p>
       </section>
     </>
   )
