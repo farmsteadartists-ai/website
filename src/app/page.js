@@ -38,6 +38,7 @@ export default async function HomePage() {
             alt="Farmstead Artists at the Flexit Cafe — May 12 to June 10, 2026"
             className="max-w-[250px] md:max-w-[300px] mx-auto rounded-lg shadow-2xl mb-8"
           />
+          <p className="text-cream-50 font-serif text-sm mt-4 tracking-wide">2816 Route 1, Sullivan ME 04664</p>
         </div>
       </section>
 
