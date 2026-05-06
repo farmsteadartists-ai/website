@@ -2,6 +2,7 @@
 // src/app/marketing/page.js
 // Desc:   Marketing assets download page — logos, photos,
 //         flyers, and other promo materials for FA members
+//         With thumbnail previews for each asset
 // ============================================================
 
 export const metadata = {
@@ -11,26 +12,26 @@ export const metadata = {
 
 const assets = [
   { section: 'Logos', items: [
-    { name: 'Logo 2026 (High Res JPG)', file: 'Logo2026HR.jpg', size: '333 KB' },
-    { name: 'Logo 2026 (High Res SVG)', file: 'Logo2026HR.svg', size: '84 KB' },
-    { name: 'Logo 2026 (Large JPG)', file: 'Logo2026LG.jpg', size: '3.6 MB' },
-    { name: 'Logo 2026 (Large PNG)', file: 'Logo2026LG.png', size: '3.2 MB' },
+    { name: 'Logo 2026 (High Res JPG)', file: 'Logo2026HR.jpg', size: '333 KB', preview: true },
+    { name: 'Logo 2026 (High Res SVG)', file: 'Logo2026HR.svg', size: '84 KB', preview: true },
+    { name: 'Logo 2026 (Large JPG)', file: 'Logo2026LG.jpg', size: '3.6 MB', preview: true },
+    { name: 'Logo 2026 (Large PNG)', file: 'Logo2026LG.png', size: '3.2 MB', preview: true },
   ]},
   { section: 'Print Materials', items: [
-    { name: '2026 Tri-Fold Brochure', file: '2026-tri-fold.pdf', size: '735 KB' },
-    { name: 'QR Code', file: 'QRcode.png', size: '81 KB' },
+    { name: '2026 Tri-Fold Brochure', file: '2026-tri-fold.pdf', size: '735 KB', preview: false },
+    { name: 'QR Code', file: 'QRcode.png', size: '81 KB', preview: true },
   ]},
   { section: 'Barn Photos', items: [
-    { name: 'Barn Exterior', file: 'barn-exterior.jpg', size: '2.3 MB' },
-    { name: 'Barn Interior', file: 'barn-inside.jpg', size: '101 KB' },
-    { name: 'Barn Winter', file: 'barn-winter.jpg', size: '37 KB' },
-    { name: 'Barn (PNG)', file: 'barn.png', size: '96 KB' },
-    { name: 'Build Indoors', file: 'build-indoors.jpg', size: '154 KB' },
+    { name: 'Barn Exterior', file: 'barn-exterior.jpg', size: '2.3 MB', preview: true },
+    { name: 'Barn Interior', file: 'barn-inside.jpg', size: '101 KB', preview: true },
+    { name: 'Barn Winter', file: 'barn-winter.jpg', size: '37 KB', preview: true },
+    { name: 'Barn (PNG)', file: 'barn.png', size: '96 KB', preview: true },
+    { name: 'Build Indoors', file: 'build-indoors.jpg', size: '154 KB', preview: true },
   ]},
   { section: 'Events & Shows', items: [
-    { name: 'Flexit Cafe 2026 Flyer', file: 'Flexit2026.jpg', size: '148 KB' },
-    { name: 'Hammond Hall 2024', file: 'HammondHall2024.jpg', size: '35 KB' },
-    { name: 'Map', file: 'map.jpg', size: '49 KB' },
+    { name: 'Flexit Cafe 2026 Flyer', file: 'Flexit2026.jpg', size: '148 KB', preview: true },
+    { name: 'Hammond Hall 2024', file: 'HammondHall2024.jpg', size: '35 KB', preview: true },
+    { name: 'Map', file: 'map.jpg', size: '49 KB', preview: true },
   ]},
 ]
 
@@ -53,16 +54,24 @@ export default function MarketingPage() {
                   key={item.file}
                   href={`/marketing/${item.file}`}
                   download
-                  className="flex items-center justify-between p-4 bg-cream-50 rounded-lg border border-black/[0.04] hover:bg-white hover:shadow-sm transition-all"
+                  className="flex items-center gap-4 p-4 bg-cream-50 rounded-lg border border-black/[0.04] hover:bg-white hover:shadow-sm transition-all"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">📄</span>
-                    <div>
-                      <div className="text-sage-700 font-medium text-sm">{item.name}</div>
-                      <div className="text-sage-500/60 text-xs">{item.file} · {item.size}</div>
-                    </div>
+                  <div className="w-14 h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border border-black/[0.06]">
+                    {item.preview ? (
+                      <img
+                        src={`/marketing/${item.file}`}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">📄</div>
+                    )}
                   </div>
-                  <span className="text-sage-600 text-sm font-semibold">↓</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sage-700 font-medium text-sm">{item.name}</div>
+                    <div className="text-sage-500/60 text-xs">{item.file} · {item.size}</div>
+                  </div>
+                  <span className="text-sage-600 text-lg font-bold shrink-0">↓</span>
                 </a>
               ))}
             </div>
