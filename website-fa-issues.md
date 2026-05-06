@@ -1,12 +1,17 @@
 # Website FA Issues
+#website-fa-issues.md
+#~/coworker/farmstead/website/website-fa-issues.md
 
-*Updated: 2026-04-28*
+*Updated: 2026-05-02*
 
 To close an issue: tell Claude "close issue #N" with a one-line resolution.
 
 | # | Date | Status | Priority | Issue | Resolution |
 |---|------|--------|----------|-------|------------|
-| 15 | 2026-04-28 | Open | Medium | After June 10: swap hero back to barn-exterior.jpg, remove Flexit flyer | Temporary promo |
+| 18 | 2026-05-02 | Open | Low | When hi-res original paintings are available, swap files in public/images/flexit/ (same filenames, no code change) | Current crops from flyer have text overlays |
+| 17 | 2026-04-28 | Closed | — | Flexit flyer image shows reception date as 18th — should be 16th | Replaced flyer with HTML artwork grid — date is now text, reads May 16th |
+| 16 | 2026-04-28 | Open | Medium | Correct FA member count to 18 or decide what to count: members, artists, or email list | Currently shows 15 in site.json stats.memberCount |
+| 15 | 2026-04-28 | Open | Medium | After June 10: swap hero back to barn-exterior.jpg, remove Flexit flyer | Remove flexitArtists array and restore barn hero in page.js |
 | 14 | 2026-04-28 | Open | Medium | Add Member feature — pending approval from Mary & Steve | Plan at `~/coworker/farmstead/add-member-feature.md` |
 | 13 | 2026-04-28 | Closed | — | Delete old Vercel project `farmstead-website` | Deleted all duplicate repos in Vercel |
 | 12 | 2026-04-28 | Closed | — | Delete old local repo `/Users/website/farmstead-website` | Deleted all duplicate repos in git |

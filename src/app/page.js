@@ -1,342 +1,445 @@
-// home_page.js
-// src/app/page.js
-// Desc:   Home page — hero, about, artists, calendar,
-//         history, signup, directions, contact
+// ============================================================
+// Script: page.js (dashboard)
+// Path:   src/app/dashboard/page.js
+// Desc:   Unified artist + admin dashboard. Waits for session
+//         to be ready before querying — handles post-magic-link
+//         race condition where localStorage hasn't settled yet.
 // ============================================================
 
-import shows from '@/data/shows.json'
-import site from '@/data/site.json'
-import { supabase } from '@/lib/supabase'
-import Link from 'next/link'
+'use client';
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+import { Suspense, useEffect, useState, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-// Flexit Cafe show — May 12 to June 10, 2026
-// Remove this array after the show ends and restore barn hero
-const flexitArtists = [
-  { name: 'Suzanne Becque', slug: 'suzanne-becque', img: '/images/flexit/01-suzanne.jpg' },
-  { name: 'Steve Brookman', slug: 'steve-brookman', img: '/images/flexit/02-steve.jpg' },
-  { name: 'Mavis Davis', slug: 'mavis-davis', img: '/images/flexit/03-mavis.jpg' },
-  { name: 'Mary Laury', slug: 'mary-laury', img: '/images/flexit/04-mary.jpg' },
-  { name: 'Pamela Hall', slug: 'pamela-hall', img: '/images/flexit/05-pamela.jpg' },
-  { name: 'Janis Guyette', slug: 'janis-guyette', img: '/images/flexit/06-janis.jpg' },
-  { name: 'Linda Malaussena', slug: 'linda-malaussena', img: '/images/flexit/07-linda.jpg' },
-  { name: 'Penny Ricker', slug: 'penny-ricker', img: '/images/flexit/08-penny.jpg' },
-  { name: 'Carol Michaud', slug: 'carol-michaud', img: '/images/flexit/09-carol.jpg' },
-  { name: 'Becky O\'Keefe', slug: 'becky-okeefe', img: '/images/flexit/10-becky.jpg' },
-]
+function DashboardInner() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
 
-export default async function HomePage() {
-  const { data: members } = await supabase
-    .from('artists')
-    .select('name, slug, medium, photo_url')
-    .eq('role', 'member')
-    .order('sort_order')
+  const [supabase, setSupabase]     = useState(null);
+  const [authArtist, setAuthArtist] = useState(null);
+  const [artist, setArtist]         = useState(null);
+  const [allArtists, setAllArtists] = useState([]);
+  const [isAdmin, setIsAdmin]       = useState(false);
+  const [loadError, setLoadError]   = useState('');
+
+  // profile
+  const [bio, setBio]                                 = useState('');
+  const [website, setWebsite]                         = useState('');
+  const [profilePhotoFile, setProfilePhotoFile]       = useState(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
+  const [profileSaving, setProfileSaving]             = useState(false);
+  const [profileMsg, setProfileMsg]                   = useState('');
+  const profilePhotoRef = useRef();
+
+  // artworks
+  const [artworks, setArtworks]             = useState([]);
+  const [editingArtwork, setEditingArtwork] = useState(null);
+
+  // add artwork
+  const [newTitle, setNewTitle]               = useState('');
+  const [newMedium, setNewMedium]             = useState('');
+  const [newSize, setNewSize]                 = useState('');
+  const [newPrice, setNewPrice]               = useState('');
+  const [newPhotoFile, setNewPhotoFile]       = useState(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState(null);
+  const [addingArtwork, setAddingArtwork]     = useState(false);
+  const [artworkMsg, setArtworkMsg]           = useState('');
+  const newPhotoRef = useRef();
+
+  // ── init ─────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    async function init() {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      setSupabase(sb);
+
+      // ── Wait for session — handles post-magic-link race condition ────────
+      // getSession() may return null if localStorage hasn't settled yet.
+      // We wait up to 5s for onAuthStateChange to confirm a real session.
+      let session = (await sb.auth.getSession()).data.session;
+
+      if (!session) {
+        session = await new Promise(resolve => {
+          const { data: { subscription } } = sb.auth.onAuthStateChange(
+            (event, s) => {
+              if (s) { subscription.unsubscribe(); resolve(s); }
+            }
+          );
+          setTimeout(() => { subscription.unsubscribe(); resolve(null); }, 5000);
+        });
+      }
+
+      if (!session) { router.push('/login'); return; }
+
+      // ── Look up artist record ────────────────────────────────────────────
+      const { data: me, error: meError } = await sb
+        .from('artists')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+
+      if (!me) {
+        setLoadError(`Artist record not found for ${session.user.email}. Please contact your admin.`);
+        return;
+      }
+
+      setAuthArtist(me);
+
+      if (me.is_admin === true) {
+        setIsAdmin(true);
+        const { data: all } = await sb
+          .from('artists').select('id, name, slug, photo_url, role').order('sort_order');
+        setAllArtists(all || []);
+
+        const targetId = searchParams.get('artist');
+        if (targetId) {
+          const { data: target } = await sb
+            .from('artists').select('*').eq('id', targetId).single();
+          if (target) {
+            setArtist(target);
+            setBio(target.bio || '');
+            setWebsite(target.website || '');
+            setProfilePhotoPreview(target.photo_url || null);
+            loadArtworks(sb, target.id);
+          }
+        }
+      } else {
+        setArtist(me);
+        setBio(me.bio || '');
+        setWebsite(me.website || '');
+        setProfilePhotoPreview(me.photo_url || null);
+        loadArtworks(sb, me.id);
+      }
+    }
+    init();
+  }, []);
+
+  async function loadArtworks(sb, artistId) {
+    const { data } = await sb
+      .from('artworks').select('*').eq('artist_id', artistId)
+      .order('created_at', { ascending: false });
+    setArtworks(data || []);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push('/');
+  }
+
+  // ── profile ───────────────────────────────────────────────────────────────
+
+  function handleProfilePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProfilePhotoFile(file);
+    setProfilePhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSaveProfile() {
+    if (!artist || !supabase) return;
+    setProfileSaving(true); setProfileMsg('');
+    let photo_url = artist.photo_url;
+
+    if (profilePhotoFile) {
+      const ext = profilePhotoFile.name.split('.').pop();
+      const path = `artists/${artist.slug}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('artists').upload(path, profilePhotoFile, { upsert: true });
+      if (uploadErr) { setProfileMsg('Upload failed: ' + uploadErr.message); setProfileSaving(false); return; }
+      const { data: urlData } = supabase.storage.from('artists').getPublicUrl(path);
+      photo_url = urlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('artists')
+      .update({ bio, website, photo_url }).eq('id', artist.id);
+    setProfileSaving(false);
+    if (error) { setProfileMsg('Save failed: ' + error.message); }
+    else { setArtist(p => ({ ...p, bio, website, photo_url })); setProfileMsg('Profile saved ✓'); setTimeout(() => setProfileMsg(''), 3000); }
+  }
+
+  // ── add artwork ───────────────────────────────────────────────────────────
+
+  function handleNewPhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNewPhotoFile(file);
+    setNewPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleAddArtwork(e) {
+    e.preventDefault();
+    if (!newTitle.trim()) { setArtworkMsg('Title is required.'); return; }
+    if (!supabase) return;
+    setAddingArtwork(true); setArtworkMsg('');
+    let photo_url = null;
+
+    if (newPhotoFile) {
+      const ext = newPhotoFile.name.split('.').pop();
+      const path = `artworks/${artist.slug}-${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('artworks').upload(path, newPhotoFile, { upsert: true });
+      if (uploadErr) { setArtworkMsg('Upload failed: ' + uploadErr.message); setAddingArtwork(false); return; }
+      const { data: urlData } = supabase.storage.from('artworks').getPublicUrl(path);
+      photo_url = urlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('artworks').insert({
+      artist_id: artist.id, title: newTitle.trim(),
+      medium: newMedium.trim() || null, size: newSize.trim() || null,
+      price: newPrice ? parseFloat(newPrice) : null, photo_url,
+    });
+    setAddingArtwork(false);
+    if (error) { setArtworkMsg('Error: ' + error.message); }
+    else {
+      setNewTitle(''); setNewMedium(''); setNewSize(''); setNewPrice('');
+      setNewPhotoFile(null); setNewPhotoPreview(null);
+      if (newPhotoRef.current) newPhotoRef.current.value = '';
+      setArtworkMsg('Artwork added ✓'); setTimeout(() => setArtworkMsg(''), 3000);
+      loadArtworks(supabase, artist.id);
+    }
+  }
+
+  async function handleSaveArtwork(aw) {
+    if (!supabase) return;
+    const { error } = await supabase.from('artworks')
+      .update({ title: aw.title, medium: aw.medium, size: aw.size, price: aw.price }).eq('id', aw.id);
+    if (!error) { setEditingArtwork(null); loadArtworks(supabase, artist.id); }
+  }
+
+  async function handleDeleteArtwork(id) {
+    if (!supabase || !confirm('Delete this artwork?')) return;
+    await supabase.from('artworks').delete().eq('id', id);
+    loadArtworks(supabase, artist.id);
+  }
+
+  // ── styles ────────────────────────────────────────────────────────────────
+
+  const inp = { width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' };
+  const lbl = { display: 'block', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '4px' };
+  const sec = { background: '#fff', borderRadius: '10px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' };
+  const btnP = { background: '#8b1a1a', color: '#fff', border: 'none', padding: '11px 28px', borderRadius: '6px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' };
+  const btnS = { background: '#8b1a1a', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '5px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginRight: '8px' };
+  const btnG = { background: 'transparent', color: '#666', border: '1px solid #ccc', padding: '6px 14px', borderRadius: '5px', fontSize: '13px', cursor: 'pointer' };
+
+  const Header = () => (
+    <div style={{ background: '#8b1a1a', color: '#fff', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <div style={{ fontWeight: '700', fontSize: '17px' }}>{isAdmin ? 'Admin Dashboard' : authArtist?.name}</div>
+        <div style={{ fontSize: '13px', opacity: 0.8 }}>{isAdmin && artist ? `Editing: ${artist.name}` : 'Artist Dashboard'}</div>
+      </div>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        {isAdmin && artist && (
+          <button onClick={() => { window.location.href = '/dashboard'; }}
+            style={{ ...btnG, color: '#fff', borderColor: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>← All Artists</button>
+        )}
+        <a href="/" style={{ color: '#fff', fontSize: '13px', textDecoration: 'none', opacity: 0.85 }}>← Site</a>
+        <button onClick={handleSignOut} style={{ ...btnG, color: '#fff', borderColor: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>Sign out</button>
+      </div>
+    </div>
+  );
+
+  // ── Marketing Assets Card (shows for all artists) ─────────────────────────
+  const MarketingCard = () => (
+    <div style={sec}>
+      <h2 style={{ margin: '0 0 8px', fontSize: '18px', color: '#2d2d2d' }}>📦 Marketing Assets</h2>
+      <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#777' }}>
+        Download logos, photos, flyers, and other assets for promoting Farmstead Artists.
+      </p>
+      <a href="/marketing" target="_blank"
+        style={{ ...btnP, display: 'inline-block', textDecoration: 'none', fontSize: '13px', padding: '8px 18px' }}>
+        View &amp; Download Assets →
+      </a>
+    </div>
+  );
+
+  // ── error state ───────────────────────────────────────────────────────────
+
+  if (loadError) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f0eb' }}>
+      <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 24px' }}>
+        <div style={{ fontSize: '40px', marginBottom: '16px' }}>⚠️</div>
+        <p style={{ color: '#8b1a1a', fontWeight: '600', marginBottom: '8px' }}>Login Problem</p>
+        <p style={{ color: '#666', fontSize: '14px', lineHeight: 1.6 }}>{loadError}</p>
+        <button onClick={() => router.push('/login')}
+          style={{ marginTop: '24px', background: '#8b1a1a', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── loading ───────────────────────────────────────────────────────────────
+
+  if (!authArtist) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: '#888' }}>Loading…</p>
+    </div>
+  );
+
+  // ── ADMIN LIST VIEW ───────────────────────────────────────────────────────
+
+  if (isAdmin && !artist) return (
+    <div style={{ background: '#f5f0eb', minHeight: '100vh', paddingBottom: '60px' }}>
+      <Header />
+      <div style={{ maxWidth: '680px', margin: '32px auto', padding: '0 16px' }}>
+        <div style={sec}>
+          <h2 style={{ margin: '0 0 20px', fontSize: '18px', color: '#2d2d2d' }}>All Artists</h2>
+          <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button onClick={() => { window.location.href = '/dashboard/art-guide'; }}
+              style={{ background: '#3a6186', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+              🗺 Manage Art Guide
+            </button>
+            <a href="/marketing" target="_blank"
+              style={{ background: '#5a7a5a', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
+              📦 Marketing Assets
+            </a>
+          </div>
+          {allArtists.filter(a => a.role !== 'guest').map(a => (
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 0', borderBottom: '1px solid #f0ebe4' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#eee', overflow: 'hidden', flexShrink: 0 }}>
+                {a.photo_url
+                  ? <img src={a.photo_url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#aaa' }}>👤</div>
+                }
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '15px', color: '#2d2d2d' }}>{a.name}</div>
+                <div style={{ fontSize: '12px', color: '#999', textTransform: 'capitalize' }}>{a.role}</div>
+              </div>
+              <button onClick={() => { window.location.href = `/dashboard?artist=${a.id}`; }} style={btnS}>Manage</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── PROFILE + ARTWORKS VIEW ───────────────────────────────────────────────
+
   return (
-    <>
-      {/* ===== HERO — Flexit Cafe Show ===== */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 py-14 bg-charcoal">
-        <div className="absolute inset-0">
-          <img
-            src="/images/barn/barn-exterior.jpg"
-            alt="The Farmstead Barn, East Sullivan, Maine"
-            className="w-full h-full object-cover opacity-20"
-          />
-        </div>
-        <div className="relative z-10 text-cream-50 w-full max-w-2xl">
-          <h1 className="font-serif text-4xl md:text-6xl font-bold leading-[1.1] mb-1">
-            Farmstead Artists
-          </h1>
-          <p className="text-gold font-semibold text-sm uppercase tracking-[0.2em] mb-5">NOW SHOWING at FLEXIT CAFE</p>
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <img src="/images/flexit/12-FA-logo.jpg" alt="Farmstead Artists" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-contain" />
-            <div className="bg-black/40 border border-white/15 rounded-lg px-5 py-3">
-              <div className="font-serif text-xl md:text-2xl font-bold">May 12 – June 10, 2026</div>
-              <div className="text-xs opacity-80 font-light mt-1">142 Main St, Ellsworth · Mon–Sat 7am–3pm</div>
-              <div className="text-gold text-xs font-semibold mt-1">Reception Saturday, May 16th</div>
-            </div>
-            <img src="/images/flexit/11-flexit-logo.jpg" alt="Flexit Cafe" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-contain" />
-          </div>
-          <div className="grid grid-cols-5 gap-1.5 md:gap-2 mb-1">
-            {flexitArtists.slice(0, 5).map((a) => (
-              <Link key={a.slug} href={`/artists/${a.slug}`} className="group">
-                <div className="aspect-square rounded overflow-hidden border border-white/20">
-                  <img src={a.img} alt={a.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                <div className="text-cream-50/70 text-[0.5rem] md:text-[0.65rem] mt-1 font-light leading-tight truncate">{a.name}</div>
-              </Link>
-            ))}
-          </div>
-          <div className="grid grid-cols-5 gap-1.5 md:gap-2 mb-5">
-            {flexitArtists.slice(5, 10).map((a) => (
-              <Link key={a.slug} href={`/artists/${a.slug}`} className="group">
-                <div className="aspect-square rounded overflow-hidden border border-white/20">
-                  <img src={a.img} alt={a.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                <div className="text-cream-50/70 text-[0.5rem] md:text-[0.65rem] mt-1 font-light leading-tight truncate">{a.name}</div>
-              </Link>
-            ))}
-          </div>
-          <p className="text-cream-50 font-serif text-sm tracking-wide">2816 Route 1, Sullivan ME 04664</p>
-        </div>
-      </section>
+    <div style={{ background: '#f5f0eb', minHeight: '100vh', paddingBottom: '60px' }}>
+      <Header />
+      <div style={{ maxWidth: '680px', margin: '32px auto', padding: '0 16px' }}>
 
-      {/* ===== ABOUT ===== */}
-      <section id="about" className="py-14 px-6 md:px-16 bg-cream-50">
-        <div className="max-w-2xl">
-            <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">About Us</div>
-            <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-4 leading-tight">
-              Community Art in a<br />Historic Setting
-            </h2>
-            <p className="text-gray-600 font-light mb-4 leading-relaxed">
-              The Farmstead Artists are a select group of community, non-represented artists who display and sell
-              original artwork at the Farmstead Barn — a beautifully weathered structure on Route 1 in East Sullivan,
-              Maine that dates back to 1803.
-            </p>
-            <blockquote className="border-l-[3px] border-sage-600 pl-5 my-6 font-serif italic text-lg text-sage-700 leading-relaxed">
-              &ldquo;So many people came to the shows and shared their childhood memories of the barn.&rdquo;
-            </blockquote>
-            <p className="text-gray-600 font-light leading-relaxed">
-              Since our first summer in 2022, we&rsquo;ve grown into a collective of {site.stats.memberCount} members,
-              welcoming guest artists each season and drawing visitors from across Downeast Maine and beyond.
-              Our shows feature watercolors, oils, acrylics, collages, and drawings — plus prints and cards.
-            </p>
-            <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
-              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.piecesSold2025}</span>
-                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Pieces sold<br />in 2025</span>
-              </div>
-              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.summers}</span>
-                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Summers<br />&amp; counting</span>
-              </div>
-              <div className="text-center py-4 px-2 bg-cream-100 rounded-md">
-                <span className="font-serif text-2xl font-bold text-sage-600 block">{site.stats.memberCount}</span>
-                <span className="text-[0.7rem] uppercase tracking-wider text-sage-500/70 font-medium">Member<br />artists</span>
-              </div>
+        <div style={sec}>
+          <h2 style={{ margin: '0 0 20px', fontSize: '18px', color: '#2d2d2d' }}>{isAdmin ? `${artist.name} — Profile` : 'My Profile'}</h2>
+          <div style={{ marginBottom: '18px', textAlign: 'center' }}>
+            <div onClick={() => profilePhotoRef.current?.click()}
+              style={{ width: 100, height: 100, borderRadius: '50%', margin: '0 auto 8px', background: '#eee', overflow: 'hidden', cursor: 'pointer', border: '3px solid #8b1a1a' }}>
+              {profilePhotoPreview
+                ? <img src={profilePhotoPreview} alt="headshot" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '30px', color: '#999' }}>👤</div>
+              }
             </div>
+            <div style={{ fontSize: '13px', color: '#8b1a1a', cursor: 'pointer' }} onClick={() => profilePhotoRef.current?.click()}>
+              {profilePhotoPreview ? 'Change photo' : 'Add photo'}
+            </div>
+            <input ref={profilePhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleProfilePhotoChange} />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={lbl}>Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4} placeholder="Tell visitors about your work…" style={{ ...inp, resize: 'vertical' }} />
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={lbl}>Website (optional)</label>
+            <input type="url" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yoursite.com" style={inp} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button onClick={handleSaveProfile} disabled={profileSaving} style={btnP}>{profileSaving ? 'Saving…' : 'Save Profile'}</button>
+            {profileMsg && <span style={{ fontSize: '14px', color: profileMsg.includes('failed') ? '#c00' : '#2a7a2a' }}>{profileMsg}</span>}
+          </div>
         </div>
-      </section>
 
-      {/* ===== ARTISTS — mobile only ===== */}
-      <section id="artists" className="md:hidden py-14 px-6 bg-cream-100">
-        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Our Artists</div>
-        <h2 className="font-serif text-3xl font-semibold text-sage-700 mb-4">Member Artists</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {(members || []).map(artist => (
-            <Link key={artist.slug} href={`/artists/${artist.slug}`} className="group block">
-              <div className="aspect-[3/4] rounded-lg overflow-hidden bg-sage-600/10 relative">
-                {artist.photo_url ? (
-                  <img src={artist.photo_url} alt={artist.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-serif text-3xl font-bold text-sage-600/30">
-                      {artist.name.split(' ').map(n => n[0]).join('')}
-                    </span>
+        <div style={sec}>
+          <h2 style={{ margin: '0 0 4px', fontSize: '18px', color: '#2d2d2d' }}>{isAdmin ? `${artist.name} — Artworks` : 'My Artworks'}</h2>
+          <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#777' }}>{artworks.length} piece{artworks.length !== 1 ? 's' : ''} on file</p>
+
+          {artworks.map(aw => (
+            <div key={aw.id} style={{ display: 'flex', gap: '12px', marginBottom: '16px', padding: '12px', background: '#faf9f7', borderRadius: '8px', border: '1px solid #ebe7e0' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '6px', background: '#eee', overflow: 'hidden', flexShrink: 0 }}>
+                {aw.photo_url ? <img src={aw.photo_url} alt={aw.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>🖼</div>}
+              </div>
+              <div style={{ flex: 1 }}>
+                {editingArtwork?.id === aw.id ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <input value={editingArtwork.title} onChange={e => setEditingArtwork(p => ({ ...p, title: e.target.value }))} style={{ ...inp, padding: '6px 8px', fontSize: '14px' }} placeholder="Title" />
+                    <input value={editingArtwork.medium || ''} onChange={e => setEditingArtwork(p => ({ ...p, medium: e.target.value }))} style={{ ...inp, padding: '6px 8px', fontSize: '14px' }} placeholder="Medium" />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input value={editingArtwork.size || ''} onChange={e => setEditingArtwork(p => ({ ...p, size: e.target.value }))} style={{ ...inp, padding: '6px 8px', fontSize: '14px' }} placeholder="Size" />
+                      <input value={editingArtwork.price || ''} onChange={e => setEditingArtwork(p => ({ ...p, price: e.target.value }))} style={{ ...inp, padding: '6px 8px', fontSize: '14px' }} placeholder="Price $" type="number" />
+                    </div>
+                    <div style={{ marginTop: '4px' }}>
+                      <button style={btnS} onClick={() => handleSaveArtwork(editingArtwork)}>Save</button>
+                      <button style={btnG} onClick={() => setEditingArtwork(null)}>Cancel</button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div style={{ fontWeight: '600', fontSize: '15px', color: '#2d2d2d' }}>{aw.title}</div>
+                    <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                      {[aw.medium, aw.size, aw.price ? `$${aw.price}` : null].filter(Boolean).join(' · ')}
+                    </div>
+                    <div style={{ marginTop: '8px' }}>
+                      <button style={btnS} onClick={() => setEditingArtwork({ ...aw })}>Edit</button>
+                      <button style={{ ...btnG, color: '#c00', borderColor: '#f5c0c0' }} onClick={() => handleDeleteArtwork(aw.id)}>Delete</button>
+                    </div>
+                  </>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                  <div className="font-serif font-semibold text-cream-50 text-sm leading-tight">{artist.name}</div>
-                  {artist.medium && <div className="text-[0.65rem] text-cream-50/70 font-light mt-0.5">{artist.medium}</div>}
-                </div>
               </div>
-            </Link>
-          ))}
-        </div>
-        <Link href="/artists" className="block mt-6 text-center py-3 border border-sage-600 text-sage-600 rounded font-semibold text-sm hover:bg-sage-600/5 transition-colors">
-          View All Artists →
-        </Link>
-      </section>
-
-      {/* ===== CALENDAR ===== */}
-      <section id="calendar" className="py-14 px-6 md:px-16 bg-sage-600 text-cream-50">
-        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-gold font-semibold mb-2">{shows.season} Season</div>
-        <h2 className="font-serif text-3xl md:text-4xl font-semibold mb-6">Show Dates</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          {shows.shows.map((show) => (
-            <div key={show.startDate} className="bg-white/[0.07] border border-white/10 rounded-lg p-4 text-center">
-              <div className="font-serif text-2xl font-bold text-gold leading-none">{show.days}</div>
-              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-white/50 font-semibold mt-1">{show.month}</div>
-              <div className="text-xs opacity-50 font-light mt-1">{show.title}</div>
             </div>
           ))}
-        </div>
-        <div className="bg-white/[0.07] border border-white/10 rounded-lg p-4">
-          <iframe
-            src="https://calendar.google.com/calendar/embed?src=farmsteadartists%40gmail.com&ctz=America%2FNew_York&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&bgcolor=%23ffffff"
-            className="w-full rounded"
-            style={{ border: 0, minHeight: '400px' }}
-            frameBorder="0"
-            scrolling="no"
-          />
-          <p className="text-center text-xs opacity-50 mt-3 font-light">
-            Fri–Sat {shows.hours.friday} · Sun {shows.hours.sunday}
-          </p>
-        </div>
-        <div className="mt-6 text-center">
-          <a href="#signup" className="inline-block text-gold text-sm font-medium tracking-wider uppercase border border-gold/40 px-6 py-2.5 rounded hover:bg-gold/15 transition-colors">
-            Get show reminders →
-          </a>
-        </div>
-      </section>
 
-      {/* ===== BARN HISTORY ===== */}
-      <section id="history" className="py-14 px-6 md:px-16 bg-cream-200">
-        <div className="max-w-2xl">
-          <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">The Barn</div>
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-6">A Story Since 1803</h2>
-          <div className="relative pl-6">
-            <div className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: 'linear-gradient(to bottom, #B22222, #E84545)' }} />
-            {[
-              { year: '1803', text: 'Built as a milk farm on the shore of Sullivan.' },
-              { year: 'Late 1800s', text: 'The barn was moved across to the other side of what is now Route 1.' },
-              { year: '1940s–50s', text: 'Operated as a Tea House offering simple food and fortune telling.' },
-              { year: '1972–2012', text: 'For forty years, Ginia Davis Wexler — an internationally renowned operatic performer — hosted summer theater and children\'s arts programming.' },
-              { year: '2018', text: 'Judy Ashby and Ray Weintraub purchased the property with hopes of reopening it as an event center.' },
-              { year: '2022', text: 'The Farmstead Artists held their first summer shows — and the barn came alive with art once more.' },
-            ].map((item) => (
-              <div key={item.year} className="relative mb-6 pl-4">
-                <div className="absolute -left-[1.55rem] top-1.5 w-2 h-2 rounded-full bg-sage-600 border-2 border-cream-200" />
-                <div className="font-serif font-bold text-sage-600">{item.year}</div>
-                <div className="text-gray-500 font-light text-[0.92rem] mt-0.5">{item.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== EMAIL SIGNUP ===== */}
-      <section id="signup" className="py-14 px-6 md:px-16 bg-sage-500 text-cream-50 text-center">
-        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-white/50 font-semibold mb-2">Stay in Touch</div>
-        <h2 className="font-serif text-3xl font-semibold mb-3">Show Reminders<br />&amp; News</h2>
-        <p className="opacity-80 font-light mb-6 text-[0.95rem]">
-          Get notified before each show weekend, plus news about guest speakers and special events.
-        </p>
-        <a
-          href="https://forms.gle/7XakUGhunzhDPLuZ6"
-          target="_blank"
-          className="inline-block px-8 py-3 bg-cream-50 text-sage-600 rounded font-semibold text-sm uppercase tracking-wider hover:bg-white hover:-translate-y-0.5 transition-all"
-        >
-          Sign Up for Show Reminders
-        </a>
-      </section>
-
-      {/* ===== DIRECTIONS ===== */}
-      <section id="directions" className="py-14 px-6 md:px-16 bg-cream-50">
-        <div className="max-w-2xl">
-          <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Visit Us</div>
-          <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-4">Find the Barn</h2>
-          <div className="bg-cream-100 rounded-lg p-6 border border-black/[0.04]">
-            <h3 className="font-serif text-lg text-sage-700 mb-1">{site.address.venue}</h3>
-            <p className="text-gray-500 font-light">
-              {site.address.street}, {site.address.city}, {site.address.state} {site.address.zip}
-            </p>
-            <iframe
-              className="w-full h-64 border-none rounded-lg mt-4"
-              src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2800!2d${site.address.lng}!3d${site.address.lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4caec3bf9cb6e725%3A0xa5f6931321738f24!2sFarmstead%20Barn!5e0!3m2!1sen!2sus!4v1`}
-              allowFullScreen
-              loading="lazy"
-            />
-            <div className="mt-4">
-              <a
-                href={`https://www.google.com/maps/dir//Farmstead+Barn,+2816+US-1,+East+Sullivan,+ME+04664/@${site.address.lat},${site.address.lng},15z`}
-                target="_blank"
-                className="block w-full text-center py-3 bg-sage-600 text-cream-50 rounded font-medium text-sm hover:bg-sage-500 transition-colors"
-              >
-                Get Directions
-              </a>
+          <div style={{ borderTop: '1px solid #e5e0d8', paddingTop: '20px', marginTop: artworks.length > 0 ? '8px' : 0 }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: '#2d2d2d' }}>Add Artwork</h3>
+            <div onClick={() => newPhotoRef.current?.click()}
+              style={{ border: '2px dashed #ccc', borderRadius: '8px', height: newPhotoPreview ? 'auto' : 100, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: '14px', overflow: 'hidden', background: '#faf9f7' }}>
+              {newPhotoPreview
+                ? <img src={newPhotoPreview} alt="preview" style={{ maxHeight: 180, maxWidth: '100%', display: 'block' }} />
+                : <div style={{ textAlign: 'center', color: '#999' }}><div style={{ fontSize: '28px', marginBottom: '4px' }}>📷</div><div style={{ fontSize: '13px' }}>Tap to add photo</div></div>
+              }
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== CONTACT — 4 boxes horizontal ===== */}
-      <section id="contact" className="py-14 px-6 md:px-16 bg-cream-100">
-        <div className="text-[0.65rem] uppercase tracking-[0.2em] text-sage-600 font-semibold mb-2">Get in Touch</div>
-        <h2 className="font-serif text-3xl md:text-4xl font-semibold text-sage-700 mb-5">Contact Us</h2>
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
-            <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">✉</div>
-            <div>
-              <a href={`mailto:${site.contact.email}`} className="text-sage-700 font-semibold text-sm hover:underline">{site.contact.email}</a>
-              <small className="block text-sage-500/70 text-xs font-light">General inquiries &amp; show info</small>
+            <input ref={newPhotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleNewPhotoChange} />
+            <div style={{ marginBottom: '12px' }}>
+              <label style={lbl}>Title *</label>
+              <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Sunset at Schoodic" style={inp} />
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
-            <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">📞</div>
-            <div>
-              <div className="text-sage-700 font-semibold text-sm">Carol Michaud</div>
-              <small className="block text-sage-500/70 text-xs font-light">Public Relations</small>
-              <a href="tel:2079749366" className="text-sage-600 font-semibold text-sm hover:underline">207-974-9366</a>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={lbl}>Medium</label>
+              <input value={newMedium} onChange={e => setNewMedium(e.target.value)} placeholder="e.g. Watercolor, Oil on canvas" style={inp} />
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
-            <div className="w-10 h-10 rounded-full bg-sage-600/10 flex items-center justify-center text-lg shrink-0">🎨</div>
-            <div>
-              <div className="text-sage-700 font-semibold text-sm">Suzanne Becque</div>
-              <small className="block text-sage-500/70 text-xs font-light">Guest artist inquiries</small>
-              <a href="mailto:suzannebecque@gmail.com" className="text-sage-700 text-xs block hover:underline">suzannebecque@gmail.com</a>
-              <a href="tel:2072148730" className="text-sage-600 font-semibold text-sm hover:underline">207-214-8730</a>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '18px' }}>
+              <div style={{ flex: 1 }}><label style={lbl}>Size</label><input value={newSize} onChange={e => setNewSize(e.target.value)} placeholder="e.g. 12x16" style={inp} /></div>
+              <div style={{ flex: 1 }}><label style={lbl}>Price ($)</label><input value={newPrice} onChange={e => setNewPrice(e.target.value)} type="number" placeholder="0" style={inp} /></div>
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 bg-cream-50 rounded-md border border-black/[0.04] flex-1">
-            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-lg shrink-0">f</div>
-            <div>
-              <a href={site.social.facebook} target="_blank" className="text-sage-700 font-semibold text-sm hover:underline">Facebook</a>
-              <small className="block text-sage-500/70 text-xs font-light">Photos &amp; show updates</small>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button onClick={handleAddArtwork} disabled={addingArtwork} style={btnP}>{addingArtwork ? 'Adding…' : 'Add Artwork'}</button>
+              {artworkMsg && <span style={{ fontSize: '14px', color: artworkMsg.includes('rror') || artworkMsg.includes('failed') ? '#c00' : '#2a7a2a' }}>{artworkMsg}</span>}
             </div>
           </div>
         </div>
 
-        {/* GUEST ARTIST APPLICATION */}
-        <div className="mt-10">
-          <h3 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Apply as a Guest Artist</h3>
-          <p className="text-gray-600 font-light leading-relaxed mb-4">
-            Maine artists are welcome to apply as Guest Artists for the {shows.season} summer season.
-            Download the application form, fill it out, and send it to{' '}
-            <a href="mailto:suzannebecque@gmail.com" className="text-sage-600 font-medium">suzannebecque@gmail.com</a>.
-          </p>
-          <a
-            href="/forms/Guest Artist Application.pdf"
-            download
-            className="inline-block bg-sage-600 text-cream-50 px-6 py-3 rounded font-semibold text-sm tracking-wide hover:bg-sage-500 transition-colors"
-          >
-            Download Application (PDF)
-          </a>
-        </div>
+        <MarketingCard />
 
-        {/* PRIOR PRESENTATIONS */}
-        <div className="mt-10">
-          <h3 className="font-serif text-2xl font-semibold text-sage-700 mb-3">Past Presentations</h3>
-          <p className="text-gray-600 font-light leading-relaxed mb-4">
-            Each summer we host special events including art talks by established Maine artists.
-          </p>
-          <div className="space-y-3">
-            <div className="bg-cream-50 rounded-lg p-5 border border-black/[0.04]">
-              <div className="text-[0.65rem] uppercase tracking-[0.15em] text-sage-500 font-semibold mb-1">August 2025</div>
-              <h4 className="font-serif text-lg font-semibold text-sage-700">Philip Frey — Art Talk</h4>
-              <p className="text-gray-500 font-light text-sm leading-relaxed mt-1">
-                Maine artist Philip Frey, a Sullivan resident and nationally exhibiting painter best known
-                for his bold paintings of Maine, gave a standing-room-only presentation. Phil discussed his
-                development as an artist, what motivates and inspires his growth, and how he promotes his work
-                in a way that sustains his passion and livelihood. He brought several original paintings on
-                display and raffled three copies of his book.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      {/* ===== ADDRESS ===== */}
-      <section className="bg-charcoal py-5 text-center">
-        <p className="text-white font-serif text-lg md:text-xl font-semibold tracking-wide">
-          2816 US-1 · Sullivan, ME 04664
-        </p>
-      </section>
-    </>
-  )
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#888' }}>Loading…</p>
+      </div>
+    }>
+      <DashboardInner />
+    </Suspense>
+  );
 }
 
 // end of file
