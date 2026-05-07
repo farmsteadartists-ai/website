@@ -76,11 +76,29 @@ function DashboardInner() {
       if (!session) { router.push('/login'); return; }
 
       // ── Look up artist record ────────────────────────────────────────────
-      const { data: me, error: meError } = await sb
+      // Try user_id first (already linked), then fall back to email.
+      // Auto-link user_id on first successful email match.
+      const userId = session.user.id;
+      let { data: me } = await sb
         .from('artists')
         .select('*')
-        .eq('email', session.user.email)
+        .eq('user_id', userId)
         .single();
+
+      if (!me) {
+        // Fall back to email lookup
+        const { data: meByEmail } = await sb
+          .from('artists')
+          .select('*')
+          .eq('email', session.user.email)
+          .single();
+
+        if (meByEmail) {
+          // Auto-link user_id for future logins
+          await sb.from('artists').update({ user_id: userId }).eq('id', meByEmail.id);
+          me = { ...meByEmail, user_id: userId };
+        }
+      }
 
       if (!me) {
         setLoadError(`Artist record not found for ${session.user.email}. Please contact your admin.`);
@@ -242,6 +260,20 @@ function DashboardInner() {
     </div>
   );
 
+  // ── Marketing Assets Card (shows for all artists) ─────────────────────────
+  const MarketingCard = () => (
+    <div style={sec}>
+      <h2 style={{ margin: '0 0 8px', fontSize: '18px', color: '#2d2d2d' }}>📦 Marketing Assets</h2>
+      <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#777' }}>
+        Download logos, photos, flyers, and other assets for promoting Farmstead Artists.
+      </p>
+      <a href="/marketing" target="_blank"
+        style={{ ...btnP, display: 'inline-block', textDecoration: 'none', fontSize: '13px', padding: '8px 18px' }}>
+        View &amp; Download Assets →
+      </a>
+    </div>
+  );
+
   // ── error state ───────────────────────────────────────────────────────────
 
   if (loadError) return (
@@ -274,11 +306,15 @@ function DashboardInner() {
       <div style={{ maxWidth: '680px', margin: '32px auto', padding: '0 16px' }}>
         <div style={sec}>
           <h2 style={{ margin: '0 0 20px', fontSize: '18px', color: '#2d2d2d' }}>All Artists</h2>
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button onClick={() => { window.location.href = '/dashboard/art-guide'; }}
               style={{ background: '#3a6186', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
               🗺 Manage Art Guide
             </button>
+            <a href="/marketing" target="_blank"
+              style={{ background: '#5a7a5a', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
+              📦 Marketing Assets
+            </a>
           </div>
           {allArtists.filter(a => a.role !== 'guest').map(a => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 0', borderBottom: '1px solid #f0ebe4' }}>
@@ -404,6 +440,8 @@ function DashboardInner() {
             </div>
           </div>
         </div>
+
+        <MarketingCard />
 
       </div>
     </div>

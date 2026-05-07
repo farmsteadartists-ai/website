@@ -1,12 +1,17 @@
 // ============================================================
 // Script: page.js (login)
 // Path:   src/app/login/page.js
-// Desc:   Magic link email login — phone-first, no password
+// Desc:   Magic link email login — mobile-friendly, no password
 // ============================================================
 
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -86,7 +91,9 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-400 text-xs mt-6 font-light">
-          Only registered Farmstead Artists members can log in.
+          Use the email address you provided to Farmstead Artists.
+          <br />
+          Not sure which one? Contact <a href="mailto:farmsteadartists@gmail.com" className="text-sage-600 hover:underline">farmsteadartists@gmail.com</a>
         </p>
       </div>
     </section>
