@@ -12,6 +12,21 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+// Flexit Cafe show — May 12 to June 10, 2026
+// Remove this array after the show ends and restore barn hero
+const flexitArtists = [
+  { name: 'Suzanne Becque', slug: 'suzanne-becque', img: '/images/flexit/01-suzanne.jpg' },
+  { name: 'Steve Brookman', slug: 'steve-brookman', img: '/images/flexit/02-steve.jpg' },
+  { name: 'Mavis Davis', slug: 'mavis-davis', img: '/images/flexit/03-mavis.jpg' },
+  { name: 'Mary Laury', slug: 'mary-laury', img: '/images/flexit/04-mary.jpg' },
+  { name: 'Pamela Hall', slug: 'pamela-hall', img: '/images/flexit/05-pamela.jpg' },
+  { name: 'Janis Guyette', slug: 'janis-guyette', img: '/images/flexit/06-janis.jpg' },
+  { name: 'Linda Malaussena', slug: 'linda-malaussena', img: '/images/flexit/07-linda.jpg' },
+  { name: 'Penny Ricker', slug: 'penny-ricker', img: '/images/flexit/08-penny.jpg' },
+  { name: 'Carol Michaud', slug: 'carol-michaud', img: '/images/flexit/09-carol.jpg' },
+  { name: 'Becky O\'Keefe', slug: 'becky-okeefe', img: '/images/flexit/10-becky.jpg' },
+]
+
 export default async function HomePage() {
   const { data: members } = await supabase
     .from('artists')
@@ -20,25 +35,50 @@ export default async function HomePage() {
     .order('sort_order')
   return (
     <>
-      {/* ===== HERO ===== */}
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-6 py-16 bg-charcoal">
+      {/* ===== HERO — Flexit Cafe Show ===== */}
+      <section className="relative flex flex-col items-center justify-center text-center px-4 py-14 bg-charcoal">
         <div className="absolute inset-0">
           <img
             src="/images/barn/barn-exterior.jpg"
             alt="The Farmstead Barn, East Sullivan, Maine"
-            className="w-full h-full object-cover opacity-25"
+            className="w-full h-full object-cover opacity-20"
           />
         </div>
-        <div className="relative z-10 text-cream-50">
-          <h1 className="font-serif text-5xl md:text-7xl font-bold leading-[1.1] mb-6">
-            Farmstead<br />Artists
+        <div className="relative z-10 text-cream-50 w-full max-w-2xl">
+          <h1 className="font-serif text-4xl md:text-6xl font-bold leading-[1.1] mb-1">
+            Farmstead Artists
           </h1>
-          <img
-            src="/archive/flexit-flyer-front.png"
-            alt="Farmstead Artists at the Flexit Cafe — May 12 to June 10, 2026"
-            className="max-w-[250px] md:max-w-[300px] mx-auto rounded-lg shadow-2xl mb-8"
-          />
-          <p className="text-cream-50 font-serif text-sm mt-4 tracking-wide">2816 Route 1, Sullivan ME 04664</p>
+          <p className="text-gold font-semibold text-sm uppercase tracking-[0.2em] mb-5">NOW SHOWING at FLEXIT CAFE</p>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <img src="/images/flexit/12-FA-logo.jpg" alt="Farmstead Artists" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-contain" />
+            <div className="bg-black/40 border border-white/15 rounded-lg px-5 py-3">
+              <div className="font-serif text-xl md:text-2xl font-bold">May 12 – June 10, 2026</div>
+              <div className="text-xs opacity-80 font-light mt-1">142 Main St, Ellsworth · Mon–Sat 7am–3pm</div>
+              <div className="text-gold text-xs font-semibold mt-1">Reception Saturday, May 16th</div>
+            </div>
+            <img src="/images/flexit/11-flexit-logo.jpg" alt="Flexit Cafe" className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-contain" />
+          </div>
+          <div className="grid grid-cols-5 gap-1.5 md:gap-2 mb-1">
+            {flexitArtists.slice(0, 5).map((a) => (
+              <Link key={a.slug} href={`/artists/${a.slug}`} className="group">
+                <div className="aspect-square rounded overflow-hidden border border-white/20">
+                  <img src={a.img} alt={a.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <div className="text-cream-50/70 text-[0.5rem] md:text-[0.65rem] mt-1 font-light leading-tight truncate">{a.name}</div>
+              </Link>
+            ))}
+          </div>
+          <div className="grid grid-cols-5 gap-1.5 md:gap-2 mb-5">
+            {flexitArtists.slice(5, 10).map((a) => (
+              <Link key={a.slug} href={`/artists/${a.slug}`} className="group">
+                <div className="aspect-square rounded overflow-hidden border border-white/20">
+                  <img src={a.img} alt={a.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <div className="text-cream-50/70 text-[0.5rem] md:text-[0.65rem] mt-1 font-light leading-tight truncate">{a.name}</div>
+              </Link>
+            ))}
+          </div>
+          <p className="text-cream-50 font-serif text-sm tracking-wide">2816 Route 1, Sullivan ME 04664</p>
         </div>
       </section>
 
