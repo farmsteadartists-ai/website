@@ -1,76 +1,78 @@
 // ============================================================
 // Script: page.js (inquire)
 // Path:   src/app/gallery/[id]/inquire/page.js
-// Desc:   Buyer interest form — saves to inquiries table
-//         and notifies artist via Supabase email
+// Desc:   "I'm Interested" contact form for a single artwork. Loads
+//         artwork + artist context from Supabase, submits buyer's
+//         message to /api/inquire which emails Farmstead Artists.
 // ============================================================
 
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 export default function InquirePage() {
   const { id } = useParams()
-  const router = useRouter()
 
-  const [artwork, setArtwork] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [done, setDone] = useState(false)
-  const [message, setMessage] = useState('')
-
-  // Form
-  const [buyerName, setBuyerName] = useState('')
-  const [buyerEmail, setBuyerEmail] = useState('')
-  const [buyerMessage, setBuyerMessage] = useState('')
+  const [work, setWork]             = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [name, setName]             = useState('')
+  const [email, setEmail]           = useState('')
+  const [message, setMessage]       = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [status, setStatus]         = useState(null) // null | 'success' | 'error'
+  const [errorMsg, setErrorMsg]     = useState('')
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase
         .from('artworks')
         .select(`
-          id, title, medium, size, price, photo_url,
-          width_in, height_in, description,
-          artists (id, name, slug, email)
+          id, title, medium, price, photo_url,
+          artists (name, slug)
         `)
         .eq('id', id)
         .single()
 
-      if (!data) { router.push('/gallery'); return }
-      setArtwork(data)
+      setWork(data || null)
       setLoading(false)
     }
     load()
-  }, [id, router])
+  }, [id])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!buyerName.trim() || !buyerEmail.trim()) {
-      setMessage('Name and email are required.')
-      return
-    }
+    setSubmitting(true)
+    setErrorMsg('')
 
-    setSaving(true)
-    setMessage('')
-
-    const { error } = await supabase
-      .from('inquiries')
-      .insert({
-        artwork_id: artwork.id,
-        artist_id: artwork.artists.id,
-        buyer_name: buyerName.trim(),
-        buyer_email: buyerEmail.trim(),
-        message: buyerMessage.trim(),
+    try {
+      const res = await fetch('/api/inquire', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artworkId: work?.id,
+          artworkTitle: work?.title,
+          artistName: work?.artists?.name,
+          buyerName: name,
+          buyerEmail: email,
+          message
+        })
       })
 
-    setSaving(false)
+      const data = await res.json()
 
-    if (error) {
-      setMessage('Error submitting inquiry: ' + error.message)
-    } else {
-      setDone(true)
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Something went wrong. Please try again.')
+        setStatus('error')
+      } else {
+        setStatus('success')
+      }
+    } catch (err) {
+      setErrorMsg('Something went wrong. Please try again.')
+      setStatus('error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -82,24 +84,25 @@ export default function InquirePage() {
     )
   }
 
-  if (done) {
+  if (!work) {
     return (
-      <section className="min-h-screen flex items-center justify-center px-6 bg-cream-100">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">🎨</div>
-          <h1 className="font-serif text-2xl font-bold text-sage-700 mb-3">
-            Thank You!
-          </h1>
-          <p className="text-gray-500 font-light leading-relaxed mb-2">
-            Your interest in <strong className="text-sage-700">{artwork.title}</strong> has been sent to {artwork.artists.name}.
+      <section className="min-h-screen flex flex-col items-center justify-center bg-cream-100 px-6 text-center">
+        <p className="text-gray-400 font-light mb-4">We couldn't find that artwork.</p>
+        <Link href="/gallery" className="text-sage-600 underline text-sm">Back to gallery</Link>
+      </section>
+    )
+  }
+
+  if (status === 'success') {
+    return (
+      <section className="min-h-screen flex items-center justify-center bg-cream-100 px-6">
+        <div className="bg-white rounded-xl p-8 border border-black/[0.04] shadow-sm max-w-md text-center">
+          <h1 className="font-serif text-2xl font-bold text-sage-700 mb-2">Message sent!</h1>
+          <p className="text-gray-500 font-light mb-6">
+            Thanks for your interest in "{work.title}". We'll be in touch soon.
           </p>
-          <p className="text-gray-400 text-sm font-light mb-8">
-            The artist will be in touch with you at {buyerEmail}.
-          </p>
-          <Link
-            href="/gallery"
-            className="inline-block px-8 py-3 bg-sage-600 text-cream-50 rounded-lg font-semibold hover:bg-sage-500 transition-colors"
-          >
+          <Link href="/gallery"
+            className="inline-block px-6 py-2.5 bg-sage-600 text-cream-50 rounded-lg text-sm font-semibold hover:bg-sage-500 transition-colors">
             Back to Gallery
           </Link>
         </div>
@@ -108,116 +111,80 @@ export default function InquirePage() {
   }
 
   return (
-    <section className="min-h-screen bg-cream-100 pb-24">
+    <section className="py-14 px-6 md:px-16 bg-cream-100 min-h-screen flex justify-center">
+      <div className="w-full max-w-md">
 
-      {/* Header */}
-      <div className="bg-sage-600 text-cream-50 px-6 py-5">
-        <button onClick={() => router.back()} className="text-white/60 text-sm mb-1 hover:text-white">
-          ← Back to Gallery
-        </button>
-        <h1 className="font-serif text-xl font-bold">Express Interest</h1>
-      </div>
+        <Link href="/gallery" className="text-xs text-sage-600 hover:text-sage-500 mb-6 inline-block">
+          &larr; Back to Gallery
+        </Link>
 
-      <div className="px-6 py-6 max-w-lg mx-auto">
-
-        {/* Artwork summary card */}
-        <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-sm mb-8 flex gap-4 p-4">
-          <div className="w-24 h-24 rounded-lg overflow-hidden bg-cream-200 flex-shrink-0">
-            {artwork.photo_url ? (
-              <img
-                src={artwork.photo_url}
-                alt={artwork.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-gray-300 text-xs">No photo</span>
-              </div>
+        {/* Artwork summary */}
+        <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-sm mb-6 flex items-center gap-4 p-4">
+          {work.photo_url && (
+            <img src={work.photo_url} alt={work.title}
+              className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+          )}
+          <div className="min-w-0">
+            <h1 className="font-serif font-semibold text-sage-700 text-base truncate">{work.title}</h1>
+            {work.artists?.name && (
+              <p className="text-xs text-gray-400 font-light">by {work.artists.name}</p>
             )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-serif font-semibold text-sage-700 leading-tight">{artwork.title}</h2>
-            <p className="text-xs text-gray-400 font-light mt-0.5">
-              by {artwork.artists.name}
-            </p>
-            {artwork.medium && (
-              <p className="text-xs text-gray-400 font-light">{artwork.medium}</p>
-            )}
-            {(artwork.width_in && artwork.height_in) ? (
-              <p className="text-xs text-gray-400 font-light">
-                {artwork.width_in} × {artwork.height_in} in
-              </p>
-            ) : artwork.size ? (
-              <p className="text-xs text-gray-400 font-light">{artwork.size}</p>
-            ) : null}
-            {artwork.price && (
-              <p className="text-sage-600 font-semibold text-sm mt-1">
-                ${artwork.price.toLocaleString()}
-              </p>
+            {work.price && (
+              <p className="text-sage-600 font-semibold text-sm mt-1">${work.price.toLocaleString()}</p>
             )}
           </div>
         </div>
 
-        {/* Form */}
-        <p className="text-gray-500 font-light text-sm mb-6 leading-relaxed">
-          Fill in your details below and {artwork.artists.name} will contact you directly to arrange the purchase.
+        <h2 className="font-serif text-xl font-bold text-sage-700 mb-1">I'm Interested</h2>
+        <p className="text-gray-500 font-light text-sm mb-6">
+          Send a message and someone from Farmstead Artists will get back to you.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 border border-black/[0.04] shadow-sm space-y-4">
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-1">Your Name *</label>
+            <label className="block text-xs font-medium text-sage-700 mb-1">Your Name</label>
             <input
               type="text"
-              value={buyerName}
-              onChange={e => setBuyerName(e.target.value)}
-              placeholder="Jane Smith"
               required
-              className="w-full px-4 py-3.5 text-base rounded-lg border border-gray-200 bg-white focus:border-sage-600 outline-none"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-cream-50 focus:border-sage-600 outline-none"
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-1">Your Email *</label>
+            <label className="block text-xs font-medium text-sage-700 mb-1">Your Email</label>
             <input
               type="email"
-              value={buyerEmail}
-              onChange={e => setBuyerEmail(e.target.value)}
-              placeholder="jane@email.com"
               required
-              className="w-full px-4 py-3.5 text-base rounded-lg border border-gray-200 bg-white focus:border-sage-600 outline-none"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-cream-50 focus:border-sage-600 outline-none"
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-1">
-              Message <span className="text-gray-400 font-light">(optional)</span>
-            </label>
+            <label className="block text-xs font-medium text-sage-700 mb-1">Message</label>
             <textarea
-              value={buyerMessage}
-              onChange={e => setBuyerMessage(e.target.value)}
-              rows={4}
-              placeholder="Any questions about the piece, shipping, pickup..."
-              className="w-full px-4 py-3.5 text-base rounded-lg border border-gray-200 bg-white focus:border-sage-600 outline-none resize-none"
+              required
+              rows={5}
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder={`I'm interested in "${work.title}"...`}
+              className="w-full px-3 py-2.5 text-sm rounded-lg border border-gray-200 bg-cream-50 focus:border-sage-600 outline-none resize-none"
             />
           </div>
 
-          {message && (
-            <p className="text-red-500 text-sm font-medium">{message}</p>
+          {status === 'error' && (
+            <p className="text-red-600 text-xs">{errorMsg}</p>
           )}
 
           <button
             type="submit"
-            disabled={saving}
-            className="w-full py-4 bg-sage-600 text-cream-50 rounded-lg font-semibold text-lg hover:bg-sage-500 transition-colors disabled:opacity-50"
+            disabled={submitting}
+            className="w-full py-2.5 bg-sage-600 text-cream-50 rounded-lg text-sm font-semibold hover:bg-sage-500 transition-colors disabled:opacity-50"
           >
-            {saving ? 'Sending...' : 'Send My Interest'}
+            {submitting ? 'Sending...' : 'Send Message'}
           </button>
         </form>
-
-        <p className="text-center text-gray-400 text-xs mt-6 font-light">
-          The artist will contact you directly. No payment is collected here.
-        </p>
-
       </div>
     </section>
   )
