@@ -2,7 +2,7 @@
 
 Original art in a historic barn on Route 1, East Sullivan, Maine.
 
-## Quick Start (on your Mac)
+## Quick Start (on your Mac) MUST document infrastructure
 
 ```bash
 cd /Users/website
